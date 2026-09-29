@@ -16,32 +16,34 @@ WANTED = {
     "PREAMBLE": "preamble",
 }
 
+#@ Lấy loại, tiêu đề và phần căn cứ từ các marker của văn bản Markdown.
 def extract_sections(text: str) -> dict[str, str]:
     sections : dict[str, list[str]]= {}
-    current : str|None= None  # key metadata của section đang mở
+    current : str|None= None  #? Khóa metadata của section đang mở.
 
     for raw in text.splitlines():
         line = raw.strip()
 
-        # Gặp marker: đóng section cũ, mở section mới nếu nằm trong WANTED
+        #? Marker mới thay section đang mở; chỉ giữ các loại trong WANTED.
         if MARKER_RE.match(line):
             current = WANTED.get(line)
             if current:
                 sections[current] = []
             continue
 
-        # Đang trong section cần lấy và dòng không rỗng thì thu thập
+        #? Chỉ thu thập dòng có nội dung trong section cần lấy.
         if current and line:
             sections[current].append(line)
 
     return {
         "document_type": " ".join(sections.get("document_type", [])),
-        # Title bị ngắt dòng giữa câu nên nối bằng khoảng trắng
+        #? Tiêu đề bị ngắt dòng giữa câu nên nối bằng khoảng trắng.
         "document_title": " ".join(sections.get("document_title", [])),
-        # Preamble mỗi dòng là một "Căn cứ ..." nên giữ xuống dòng
+        #? Giữ xuống dòng giữa các căn cứ trong phần mở đầu.
         "preamble": "\n".join(sections.get("preamble", [])),
     }
 
+#@ Đọc các file Markdown và tạo Document kèm metadata từ YAML đầu file.
 def turn_files_into_documents(data_path:Path = Path("../../data/md")) -> list[Document]:
     all_documents :list[Document] = []
     for path in data_path.glob("*.md"):
@@ -67,10 +69,10 @@ def turn_files_into_documents(data_path:Path = Path("../../data/md")) -> list[Do
     return all_documents
 
 @dataclass(frozen=True)
-class Level:
-    boundaries: frozenset[str]            # marker dùng để cắt ở tầng này
-    boundary_key: str                     # metadata key = dòng non-empty ngay dưới marker cắt
-    extra: dict[str, str] = field(default_factory=lambda: {})  # metadata key -> marker khác bên trong section
+class Level:  #? Cấu hình marker và khóa metadata cho một tầng tách văn bản.
+    boundaries: frozenset[str]            #? Các marker dùng để cắt ở tầng này.
+    boundary_key: str                     #? Khóa metadata lấy từ dòng có nội dung sau marker.
+    extra: dict[str, str] = field(default_factory=lambda: {})  #? Ánh xạ khóa metadata sang marker bổ sung.
 
 
 LEVELS: list[Level] = [
@@ -86,6 +88,7 @@ LEVELS: list[Level] = [
 ]
 
 
+#@ Lấy dòng có nội dung đầu tiên sau marker, hoặc từ đầu nếu không có marker.
 def _line_below(lines: list[str], marker: str | None = None) -> str | None:
     """Dòng non-empty đầu tiên ngay dưới `marker`. marker=None thì lấy từ đầu."""
     start = 0
@@ -102,6 +105,7 @@ def _line_below(lines: list[str], marker: str | None = None) -> str | None:
     return None
 
 
+#@ Cắt văn bản theo các marker ranh giới thành cặp marker và nội dung.
 def _cut(text: str, boundaries: frozenset[str]) -> list[tuple[str, str]]:
     """Cắt text thành [(marker, content)], bỏ phần trước boundary đầu tiên."""
     parts: list[tuple[str, str]] = []
@@ -121,8 +125,9 @@ def _cut(text: str, boundaries: frozenset[str]) -> list[tuple[str, str]]:
     return parts
 
 
+#@ Tách Document lần lượt theo các tầng và chuyển thông tin section vào metadata.
 def split_document(documents: list[Document], levels: list[Level] = LEVELS) -> list[Document]:
-    # Hết tầng: trả nguyên list
+    #? Hết tầng thì trả lại danh sách hiện có.
     if not levels:
         return documents
 
@@ -132,7 +137,7 @@ def split_document(documents: list[Document], levels: list[Level] = LEVELS) -> l
     for d in documents:
         parts = _cut(d.page_content, level.boundaries)
 
-        # Tầng này không có boundary: giữ nguyên doc, để tầng sau xử lý
+        #? Giữ nguyên Document không có boundary để tầng sau tiếp tục xử lý.
         if not parts:
             next_docs.append(d)
             continue
@@ -149,9 +154,10 @@ def split_document(documents: list[Document], levels: list[Level] = LEVELS) -> l
 
             next_docs.append(Document(page_content=content, metadata=meta))
 
-    # Đệ quy 1 lần cho toàn bộ list xuống tầng kế
+    #? Đưa toàn bộ kết quả của tầng này qua tầng kế tiếp.
     return split_document(next_docs, rest)
 
+#@ Chia các section thành chunk văn bản có chồng lấn để phục vụ retrieval.
 def chunk_documents(sections_from_all_documents:list[Document]) -> list[Document]:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size = 1000,
@@ -162,8 +168,9 @@ def chunk_documents(sections_from_all_documents:list[Document]) -> list[Document
     chunks : list[Document] = splitter.split_documents(sections_from_all_documents)
     return chunks
 
-def process_all() -> list[Document]:
-    all_documents :list[Document] = turn_files_into_documents()
+#@ Chạy lần lượt bước đọc file, tách section và chia chunk.
+def process_all(path:Path =  Path("../../data/md")) -> list[Document]:
+    all_documents :list[Document] = turn_files_into_documents(path)
     sections_from_all_documents:list[Document] = split_document(all_documents)
     chunks_from_all_documents:list[Document] =  chunk_documents(sections_from_all_documents)
     return chunks_from_all_documents

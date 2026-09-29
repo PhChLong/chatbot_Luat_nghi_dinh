@@ -5,8 +5,9 @@ import re
 from pathlib import Path
 import yaml
 
+#@ Tạo JSON body tìm kiếm cho trang và kích thước trang được yêu cầu.
 def build_body(page_number, page_size=10):
-    # Bám sát payload bạn đã copy; "$undefined" là chuỗi đúng nghĩa đen
+    #? "$undefined" là chuỗi literal trong payload đã quan sát.
     payload = {
         "administrativeUnit": "$undefined",
         "agencyIds": "$undefined",
@@ -35,15 +36,17 @@ def build_body(page_number, page_size=10):
         "status": "$undefined",
         "useMb25": "$undefined",
     }
-    return json.dumps([payload])   # body là MẢNG chứa 1 object
+    return json.dumps([payload])   #? Body là mảng chứa một object.
 
+#@ Đọc dòng dữ liệu "1:" trong phản hồi Flight và trả về JSON đã giải mã.
 def parse_flight(text):
-    # Tìm dòng bắt đầu bằng "1:" và parse phần sau nó
+    #? Dữ liệu cần lấy nằm sau tiền tố "1:".
     for line in text.splitlines():
         if line.startswith("1:"):
             return json.loads(line[2:])
     return None
 
+#@ Tạo header và body cho request lấy nội dung từ URL văn bản.
 def build_header_body(url):
     uuid = url.split("/")[-1]
     next_router_state_tree = "%5B%22%22%2C%7B%22children%22%3A%5B%5B%22locale%22%2C%22vi%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22van-ban%22%2C%7B%22children%22%3A%5B%5B%22category%22%2C%22chi-tiet%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%5B%22id%22%2C%22" + uuid + "%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D"
@@ -61,23 +64,24 @@ def build_header_body(url):
     return headers, body
 
 
+#@ Tách HTML theo chunk ID từ phản hồi Flight; trả về None nếu không thấy.
 def extract_html_chunk(content: bytes, chunk_id: str = "2") -> str | None:
     """Tách mảnh HTML dạng 'T' (text chunk) khỏi response flight.
 
     Định dạng giả định (suy từ quan sát): <id>:T<độ dài hex>,<nội dung>
     Độ dài đếm bằng BYTE, nên phải cắt trên bytes rồi mới decode.
     """
-    # Bắt đầu mảnh phải nằm ở đầu dòng, nên gắn (^|\n) để không khớp nhầm giữa nội dung
+    #? Neo đầu dòng để tránh khớp nhầm chuỗi giống marker trong nội dung.
     pattern = re.compile(rb"(?:^|\n)" + chunk_id.encode() + rb":T([0-9a-fA-F]+),")
     m = pattern.search(content)
     if m is None:
         return None
 
-    length = int(m.group(1), 16)          # số byte của phần nội dung
-    start = m.end()                        # HTML bắt đầu ngay sau dấu phẩy
+    length = int(m.group(1), 16)          #? Độ dài nội dung tính bằng byte.
+    start = m.end()                        #? HTML bắt đầu ngay sau dấu phẩy.
     raw = content[start:start + length]
 
-    if len(raw) < length:                  # response bị cụt so với độ dài khai báo
+    if len(raw) < length:                  #! Phản hồi bị cụt so với độ dài khai báo.
         print(f"CẢNH BÁO: khai báo {length} byte nhưng chỉ có {len(raw)}")
     return raw.decode("utf-8")
 
@@ -250,18 +254,19 @@ def html_to_md(state:dict, html: str) -> str:
     markdown = "\n\n".join(blocks)
 
     return f"---\n{metadata}\n---\n\n{markdown}"
-    
+
+#@ Lấy danh sách văn bản của một trang, tải HTML và ghi HTML/Markdown ra đĩa.
 def crawl(URL, HEADERS, page_number, debug = False):
     all_urls = []
 
     resp = requests.post(URL, headers=HEADERS, data=build_body(page_number), timeout=15)
-    resp.encoding = "utf-8"          # tránh lỗi "Nghá»‹..."
+    resp.encoding = "utf-8"          #? Giải mã UTF-8 để tránh lỗi hiển thị tiếng Việt.
     if debug:
         print(resp.status_code)
 
     data = parse_flight(resp.text)
     if data is None:
-        print(resp.text[:500])       # không thấy dòng "1:" -> in ra xem có gì
+        print(resp.text[:500])       #? In đoạn đầu để kiểm tra khi thiếu dòng "1:".
     else:
         print("total:", data["total"])
         for it in data["items"]:
