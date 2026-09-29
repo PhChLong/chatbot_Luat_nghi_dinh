@@ -12,5 +12,5 @@ HEADERS = {
 }
 
 def main() -> None:
-    for page_number in range(2):
+    for page_number in range(5):
         crawl(URL, HEADERS, page_number)

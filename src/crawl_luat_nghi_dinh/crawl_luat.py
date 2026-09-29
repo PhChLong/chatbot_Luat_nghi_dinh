@@ -275,7 +275,8 @@ def crawl(URL, HEADERS, page_number, debug = False):
             state = {
                     "status": it["effStatus"]["name"],
                     "issue date": it["issueDate"][:10],
-                    "effective from": it['effFrom'][:10]
+                    "effective from": it['effFrom'][:10],
+                    "effective to" : it['effTo'][:10] if it['effTo'] is not None else None
                 }   
             all_urls.append((it["docNum"], state, it["document_url"]))
 

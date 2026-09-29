@@ -12,3 +12,4 @@ wheels/
 *.html
 data/md/*.md
 .DS_Store
+.env
