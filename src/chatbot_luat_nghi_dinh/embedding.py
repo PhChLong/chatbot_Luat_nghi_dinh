@@ -11,7 +11,7 @@ class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embed
     #@ Nạp model theo tên đã cấu hình và báo lỗi nếu nạp thất bại.
     def _load_model(self):
         try:
-            return SentenceTransformer(self.model_name)
+            return SentenceTransformer(self.model_name, device = self.device)
         except Exception as e:
             print(f"Error loading model {self.model_name}: {e}")
             raise
