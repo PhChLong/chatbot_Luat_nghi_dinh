@@ -18,7 +18,7 @@ class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embed
 
 
     #@ Mã hóa tập văn bản đầu vào và trả về các vector embedding.
-    def generate_embeddings(self, texts) -> np.ndarray:
+    def generate_embeddings(self, texts: list[str]) -> np.ndarray:
         print(f"Generating embeddings for {len(texts)} texts...")
         embeddings :np.ndarray = self.model.encode(texts, show_progress_bar=True)
         print(f"Generated embeddings with shape: {embeddings.shape}")
