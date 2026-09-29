@@ -2,15 +2,17 @@ from .embedding import EmbeddingManager
 from .chunking import process_all
 from pathlib import Path
 from dotenv import load_dotenv
+from langchain_core.documents import Document
+from .vector_db import VectorDB
 load_dotenv()
 
 device = "mps"
 #@ Khởi tạo model embedding và in kết quả mã hóa văn bản mẫu.
 def main() -> None:
     print("Hello from chatbot-luat-nghi-dinh!")
-    # embedding_manager = EmbeddingManager(device = device)
-    # embedding = embedding_manager.generate_embeddings("Xin chào tôi là người Việt Nam")
-    # print(embedding.shape)
-    chunks = process_all(Path("../data/md"))
-    print(len(chunks))
-
+    chunks:list[Document] = process_all(Path("data/md"))
+    embedding_manager = EmbeddingManager(device = device)
+    vector_db = VectorDB(Path("data/vector_db"))
+    texts_from_chunks: list[str] = [chunk.page_content for chunk in chunks]
+    embeddings = embedding_manager.generate_embeddings(texts_from_chunks)
+    vector_db.add_documents(documents=chunks, embeddings=embeddings)

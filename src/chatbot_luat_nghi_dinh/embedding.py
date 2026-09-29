@@ -1,4 +1,5 @@
 from sentence_transformers import SentenceTransformer
+import numpy as np
 
 class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embedding cho văn bản.
     #@ Lưu cấu hình và nạp model embedding khi khởi tạo.
@@ -17,8 +18,8 @@ class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embed
 
 
     #@ Mã hóa tập văn bản đầu vào và trả về các vector embedding.
-    def generate_embeddings(self, texts):
+    def generate_embeddings(self, texts) -> np.ndarray:
         print(f"Generating embeddings for {len(texts)} texts...")
-        embeddings = self.model.encode(texts, show_progress_bar=True)
+        embeddings :np.ndarray = self.model.encode(texts, show_progress_bar=True)
         print(f"Generated embeddings with shape: {embeddings.shape}")
         return embeddings
