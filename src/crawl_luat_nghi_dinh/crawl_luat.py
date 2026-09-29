@@ -1,4 +1,5 @@
 import requests
+import os
 import json
 from bs4 import BeautifulSoup
 import re
@@ -95,7 +96,7 @@ def clean_text(node, separator=" "):
 
 
 #@ Chuyển HTML thành Markdown và đánh dấu các phần của văn bản.
-def html_to_md(state:dict, html: str) -> str:
+def html_to_md(state:dict, html: str) -> str|None:
     soup = BeautifulSoup(html, "html.parser")
     content = soup.select_one("article.docx-page") or soup.body or soup
 
@@ -115,9 +116,9 @@ def html_to_md(state:dict, html: str) -> str:
     ]
 
     if not tags:
-        raise ValueError(
-            "Không tìm thấy <p> hoặc <table>; kiểm tra lại dữ liệu đầu vào."
-        )
+        name = state.get("title") or state.get("url") or state.get("id") or "?"
+        print(f"[SKIP] Không tìm thấy <p> hoặc <table>: {name}")
+        return None
 
     document_types = {
         "THÔNG TƯ",
@@ -149,7 +150,11 @@ def html_to_md(state:dict, html: str) -> str:
                     text = text.replace("|", r"\|")
                     row.append(text)
 
-                    colspan = int(cell.get("colspan", 1))
+                    raw = cell.get("colspan")
+                    try:
+                        colspan = int(raw) if isinstance(raw, str) else 1
+                    except ValueError:
+                        colspan = 1
                     row.extend([""] * (colspan - 1))
 
                 if row:
@@ -180,7 +185,8 @@ def html_to_md(state:dict, html: str) -> str:
         if not text or not text.strip("_-—– "):
             continue
 
-        classes = tag.get("class", [])
+        raw_classes = tag.get("class")
+        classes = raw_classes if isinstance(raw_classes, list) else []
         lines = clean_text(tag, separator="\n").splitlines()
 
         #? Loại và tên văn bản có thể chung một đoạn, ngăn bằng <br>.
@@ -257,6 +263,8 @@ def html_to_md(state:dict, html: str) -> str:
 
 #@ Lấy danh sách văn bản của một trang, tải HTML và ghi HTML/Markdown ra đĩa.
 def crawl(URL, HEADERS, page_number, debug = False):
+    os.makedirs("data/html", exist_ok=True)
+    os.makedirs("data/md", exist_ok= True)
     all_urls = []
 
     resp = requests.post(URL, headers=HEADERS, data=build_body(page_number), timeout=15)
@@ -268,7 +276,7 @@ def crawl(URL, HEADERS, page_number, debug = False):
     if data is None:
         print(resp.text[:500])       #? In đoạn đầu để kiểm tra khi thiếu dòng "1:".
     else:
-        print("total:", data["total"])
+        # print("total:", data["total"])
         for it in data["items"]:
             if debug:
                 print( it["docNum"],
@@ -302,11 +310,14 @@ def crawl(URL, HEADERS, page_number, debug = False):
 
             with open(f"data/html/{file_name}.html", "w", encoding="utf-8") as f:
                 f.write(html)
-
+            
             html_path = Path(f"data/html/{file_name}.html")
             html = html_path.read_text(encoding="utf-8")
 
-            markdown = html_to_md(state, html)
-            md_path = Path(f"data/md/{file_name}.md")
-            md_path.write_text(markdown, encoding="utf-8")
-        print()
+            markdown:str|None = html_to_md(state, html)
+            if markdown is None:
+                print(f"{url} is not valid for parsing html to markdown, please recheck")
+            else:
+                md_path = Path(f"data/md/{file_name}.md")
+                md_path.write_text(markdown, encoding="utf-8")
+            
