@@ -1,5 +1,6 @@
-from sentence_transformers import SentenceTransformer
 import numpy as np
+from sentence_transformers import SentenceTransformer
+
 
 class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embedding cho văn bản.
     #@ Lưu cấu hình và nạp model embedding khi khởi tạo.
@@ -15,7 +16,6 @@ class EmbeddingManager:  #? Quản lý model SentenceTransformer và tạo embed
         except Exception as e:
             print(f"Error loading model {self.model_name}: {e}")
             raise
-
 
     #@ Mã hóa tập văn bản đầu vào và trả về các vector embedding.
     def generate_embeddings(self, texts: list[str]) -> np.ndarray:

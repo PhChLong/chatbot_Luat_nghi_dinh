@@ -1,12 +1,13 @@
-import chromadb
-from chromadb.api.types import Metadata
-from pathlib import Path
-from chromadb import Collection
 import os
-import numpy as np
-from langchain_core.documents import Document
 import uuid
-from typing import Sequence
+from collections.abc import Sequence
+from pathlib import Path
+
+import chromadb
+import numpy as np
+from chromadb import Collection
+from chromadb.api.types import Metadata
+from langchain_core.documents import Document
 
 
 class VectorDB:

@@ -1,4 +1,5 @@
 from .crawl_luat import *
+
 URL = "https://vbpl.vn/van-ban/trung-uong"
 
 #? Các header này được lấy từ request POST trong DevTools.

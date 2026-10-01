@@ -1,10 +1,12 @@
-import requests
-import os
 import json
-from bs4 import BeautifulSoup
+import os
 import re
 from pathlib import Path
+
+import requests
 import yaml
+from bs4 import BeautifulSoup
+
 
 #@ Tạo JSON body tìm kiếm cho trang và kích thước trang được yêu cầu.
 def build_body(page_number, page_size=10):
@@ -86,7 +88,6 @@ def extract_html_chunk(content: bytes, chunk_id: str = "2") -> str | None:
         print(f"CẢNH BÁO: khai báo {length} byte nhưng chỉ có {len(raw)}")
     return raw.decode("utf-8")
 
-from bs4 import BeautifulSoup
 
 
 #@ Lấy text, chuẩn hóa khoảng trắng và nối các dòng.
@@ -206,7 +207,7 @@ def html_to_md(state:dict, html: str) -> str|None:
             chapter = re.match(
                 r"^(Chương\s+(?:[IVXLCDM]+|\d+))\b(.*)$",
                 text,
-                re.I,
+                re.IGNORECASE,
             )
 
             if chapter:
@@ -225,7 +226,7 @@ def html_to_md(state:dict, html: str) -> str|None:
         elif "prov-section" in classes:
             phase, marker = "body", "PROV_SECTION"
 
-        elif re.fullmatch(r"Phụ lục\s+(?:[IVXLCDM]+|\d+)", text, re.I):
+        elif re.fullmatch(r"Phụ lục\s+(?:[IVXLCDM]+|\d+)", text, re.IGNORECASE):
             phase, marker = "body", "PROV_APPENDIX"
 
         elif phase in {"title", "preamble"}:

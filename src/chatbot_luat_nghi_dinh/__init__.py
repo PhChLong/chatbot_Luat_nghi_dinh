@@ -1,10 +1,13 @@
-from .embedding import EmbeddingManager
-from .chunking import process_all
 from pathlib import Path
+
+import torch
 from dotenv import load_dotenv
 from langchain_core.documents import Document
+
+from .chunking import process_all
+from .embedding import EmbeddingManager
 from .vector_db import VectorDB
-import torch
+
 load_dotenv()
 
 device = (

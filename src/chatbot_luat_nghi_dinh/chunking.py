@@ -1,13 +1,13 @@
 
+import re
+from dataclasses import dataclass, field
 from pathlib import Path
+
 from langchain_community.document_loaders import (
     TextLoader,
 )
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-from dataclasses import dataclass, field
-import re
 
 MARKER_RE = re.compile(r"^[A-Z][A-Z_\-]+$")
 WANTED = {
@@ -72,7 +72,7 @@ def turn_files_into_documents(data_path:Path = Path("../../data/md")) -> list[Do
 class Level:  #? Cấu hình marker và khóa metadata cho một tầng tách văn bản.
     boundaries: frozenset[str]            #? Các marker dùng để cắt ở tầng này.
     boundary_key: str                     #? Khóa metadata lấy từ dòng có nội dung sau marker.
-    extra: dict[str, str] = field(default_factory=lambda: {})  #? Ánh xạ khóa metadata sang marker bổ sung.
+    extra: dict[str, str] = field(default_factory=dict)  #? Ánh xạ khóa metadata sang marker bổ sung.
 
 
 LEVELS: list[Level] = [

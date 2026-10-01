@@ -1,7 +1,10 @@
-from .vector_db import VectorDB
-from .embedding import EmbeddingManager
-import numpy as np
 from typing import Any
+
+import numpy as np
+
+from .embedding import EmbeddingManager
+from .vector_db import VectorDB
+
 
 class RAGRetrieval:
     def __init__(self, vector_db: VectorDB, embedding_manager: EmbeddingManager) -> None:
