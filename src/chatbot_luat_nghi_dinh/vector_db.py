@@ -11,7 +11,7 @@ from langchain_core.documents import Document
 
 
 class VectorDB:
-    def __init__(self, consistent_path:Path, collection_name:str = "luật nghị định"):
+    def __init__(self, consistent_path:Path, collection_name:str = "luat-nghi-dinh"):
         self.consistent_path = consistent_path
         self.collection_name = collection_name
         self.client, self.collection = self._init_store()

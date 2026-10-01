@@ -1,23 +1,8 @@
-import ollama
+from langchain_ollama import ChatOllama
 
-SYSTEM = (
-    "Bạn là trợ lý tra cứu văn bản pháp luật Việt Nam. "
-    "Chỉ trả lời dựa trên phần NGỮ CẢNH được cung cấp. "
-    "Trích dẫn nguồn theo dạng [Nghị định, Điều, Khoản]. "
-    "Nếu ngữ cảnh không đủ thông tin, hãy nói rõ là không tìm thấy, không được suy đoán."
+qwen = ChatOllama(
+    model="qwen3.5:4b",
+    temperature= 0.1,
 )
-
-def answer(question: str, chunks: list[tuple[str, dict]]) -> str:
-    context = "\n\n".join(
-        f"[{m['nghi_dinh']} - Điều {m['dieu']}]\n{text}" for text, m in chunks
-    )
-    resp = ollama.chat(
-        model="qwen3.5:4b",
-        messages=[
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f"NGỮ CẢNH:\n{context}\n\nCÂU HỎI: {question}"},
-        ],
-        think=False,
-        options={"temperature": 0, "num_ctx": 4096},
-    )
-    return resp["message"]["content"]
+response = qwen.invoke("Giải thích Rag trong 3 câu")
+print(response.content)

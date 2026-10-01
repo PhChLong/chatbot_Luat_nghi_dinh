@@ -158,10 +158,14 @@ def split_document(documents: list[Document], levels: list[Level] = LEVELS) -> l
     return split_document(next_docs, rest)
 
 #@ Chia các section thành chunk văn bản có chồng lấn để phục vụ retrieval.
-def chunk_documents(sections_from_all_documents:list[Document]) -> list[Document]:
+def chunk_documents(
+        sections_from_all_documents:list[Document],
+        chunk_size: int = 1000,
+        chunk_overlap:int = 200,
+        ) -> list[Document]:
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size = 1000,
-        chunk_overlap = 200,
+        chunk_size = chunk_size,
+        chunk_overlap = chunk_overlap,
         separators = ["\n\n", "\n", " ", ""],
         length_function = len,
     )
@@ -169,8 +173,12 @@ def chunk_documents(sections_from_all_documents:list[Document]) -> list[Document
     return chunks
 
 #@ Chạy lần lượt bước đọc file, tách section và chia chunk.
-def process_all(path:Path =  Path("../../data/md")) -> list[Document]:
+def process_all(
+        path:Path =  Path("../../data/md"),
+        chunk_size: int = 1000,
+        chunk_overlap:int = 200,
+        ) -> list[Document]:
     all_documents :list[Document] = turn_files_into_documents(path)
     sections_from_all_documents:list[Document] = split_document(all_documents)
-    chunks_from_all_documents:list[Document] =  chunk_documents(sections_from_all_documents)
+    chunks_from_all_documents:list[Document] =  chunk_documents(sections_from_all_documents, chunk_size, chunk_overlap)
     return chunks_from_all_documents

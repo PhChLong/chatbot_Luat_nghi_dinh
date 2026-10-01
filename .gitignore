@@ -10,6 +10,6 @@ wheels/
 .venv
 
 *.html
-data/md/*.md
+data/*
 .DS_Store
 .env
