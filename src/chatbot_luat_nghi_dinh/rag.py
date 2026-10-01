@@ -11,8 +11,8 @@ class RAGRetrieval:
         self.vector_db = vector_db
         self.embedding_manager = embedding_manager
 
-    def query(self, question: str, top_k: int = 5) -> list:
-        embeded_question: np.ndarray = self.embedding_manager.generate_embeddings([question])
+    def query(self, question: str, top_k: int = 5) -> list[dict[str, Any]]:
+        embeded_question: np.ndarray = self.embedding_manager.generate_embeddings([question])[0]
         result = self.vector_db.collection.query(
             query_embeddings= [embeded_question],
             n_results=top_k
@@ -34,6 +34,3 @@ class RAGRetrieval:
                 })
 
         return retrieved_docs
-
-        
-        

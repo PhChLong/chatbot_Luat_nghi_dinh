@@ -1,4 +1,5 @@
 from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 
 qwen = ChatOllama(
     model="qwen3.5:4b",
