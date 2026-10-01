@@ -22,9 +22,9 @@ class RAGRetrieval:
             ids = result['ids'][0]
             documents = (result['documents'] or [[]])[0]
             metadatas = (result['metadatas'] or [[]])[0]
-            distance = (result['distances'] or [[]])[0]
+            distances = (result['distances'] or [[]])[0]
 
-            for i, (id, doc, metadata, distance) in enumerate(zip(ids, documents, metadatas, distance)):
+            for i, (id, doc, metadata, distance) in enumerate(zip(ids, documents, metadatas, distances)):
                 retrieved_docs.append({
                     "id": id,
                     "content": doc,

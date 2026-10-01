@@ -244,8 +244,7 @@ def html_to_md(state:dict, html: str) -> str|None:
         else:
             marker = "PROV_CONTENT"
 
-        if marker != "PROV_CONTENT":
-            if marker != last_marker or marker not in grouped:
+        if marker != "PROV_CONTENT" and (marker != last_marker or marker not in grouped):
                 blocks.append(marker)
 
         blocks.append(text)
