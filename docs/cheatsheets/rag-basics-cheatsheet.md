@@ -109,12 +109,16 @@ def format_context(docs: list[dict]) -> str:
     blocks = []
     for doc in docs:
         meta = doc["metadata"]
-        blocks.append("\n".join([
-            f"Văn bản: {meta.get('name', 'Không rõ')}",
-            f"Điều: {meta.get('article', 'Không rõ')}",
-            f"Tình trạng: {meta.get('status', 'Chưa xác định')}",
-            f"Nội dung: {doc['content']}",
-        ]))
+        blocks.append(
+            "\n".join(
+                [
+                    f"Văn bản: {meta.get('name', 'Không rõ')}",
+                    f"Điều: {meta.get('article', 'Không rõ')}",
+                    f"Tình trạng: {meta.get('status', 'Chưa xác định')}",
+                    f"Nội dung: {doc['content']}",
+                ]
+            )
+        )
     return "\n\n---\n\n".join(blocks)
 ```
 

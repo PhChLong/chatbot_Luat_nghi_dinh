@@ -11,18 +11,20 @@ from langchain_core.documents import Document
 
 
 class VectorDB:
-    def __init__(self, consistent_path:Path, collection_name:str = "luat-nghi-dinh"):
+    def __init__(self, consistent_path: Path, collection_name: str = "luat-nghi-dinh"):
         self.consistent_path = consistent_path
         self.collection_name = collection_name
         self.client, self.collection = self._init_store()
 
     def _init_store(self):
         try:
-            os.makedirs(self.consistent_path, exist_ok= True)
+            os.makedirs(self.consistent_path, exist_ok=True)
             client = chromadb.PersistentClient(self.consistent_path)
-            collection : Collection = client.get_or_create_collection(
-                name= self.collection_name,
-                metadata={"description": "Lưu lại các luật nghị định, cả embedding và text gốc"}
+            collection: Collection = client.get_or_create_collection(
+                name=self.collection_name,
+                metadata={
+                    "description": "Lưu lại các luật nghị định, cả embedding và text gốc"
+                },
             )
             return client, collection
 
@@ -33,10 +35,10 @@ class VectorDB:
     def add_documents(self, documents: list[Document], embeddings: np.ndarray):
         assert len(documents) == len(embeddings)
         # self.collection.add()
-        ids :list[str] = []
-        metadatas:list[Metadata] = []
+        ids: list[str] = []
+        metadatas: list[Metadata] = []
         documents_text: list[str] = []
-        embeddings_list:list[Sequence[float]] = []
+        embeddings_list: list[Sequence[float]] = []
 
         for i, (doc, emb) in enumerate(zip(documents, embeddings)):
             # id = f"{doc.metadata['nghi_dinh']}_d{doc.metadata['dieu']}_k{doc.metadata['khoan']}"
@@ -47,11 +49,10 @@ class VectorDB:
             metadatas.append(metadata)
             documents_text.append(doc.page_content)
             embeddings_list.append(emb.tolist())
-            
-        self.collection.add(
-            ids = ids,
-            embeddings= embeddings_list,
-            metadatas= metadatas,
-            documents= documents_text
-        )
 
+        self.collection.add(
+            ids=ids,
+            embeddings=embeddings_list,
+            metadatas=metadatas,
+            documents=documents_text,
+        )

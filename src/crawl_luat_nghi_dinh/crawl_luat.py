@@ -8,9 +8,9 @@ import yaml
 from bs4 import BeautifulSoup
 
 
-#@ Tạo JSON body tìm kiếm cho trang và kích thước trang được yêu cầu.
+# @ Tạo JSON body tìm kiếm cho trang và kích thước trang được yêu cầu.
 def build_body(page_number, page_size=10):
-    #? "$undefined" là chuỗi literal trong payload đã quan sát.
+    # ? "$undefined" là chuỗi literal trong payload đã quan sát.
     payload = {
         "administrativeUnit": "$undefined",
         "agencyIds": "$undefined",
@@ -39,65 +39,70 @@ def build_body(page_number, page_size=10):
         "status": "$undefined",
         "useMb25": "$undefined",
     }
-    return json.dumps([payload])   #? Body là mảng chứa một object.
+    return json.dumps([payload])  # ? Body là mảng chứa một object.
 
-#@ Đọc dòng dữ liệu "1:" trong phản hồi Flight và trả về JSON đã giải mã.
+
+# @ Đọc dòng dữ liệu "1:" trong phản hồi Flight và trả về JSON đã giải mã.
 def parse_flight(text):
-    #? Dữ liệu cần lấy nằm sau tiền tố "1:".
+    # ? Dữ liệu cần lấy nằm sau tiền tố "1:".
     for line in text.splitlines():
         if line.startswith("1:"):
             return json.loads(line[2:])
     return None
 
-#@ Tạo header và body cho request lấy nội dung từ URL văn bản.
+
+# @ Tạo header và body cho request lấy nội dung từ URL văn bản.
 def build_header_body(url):
     uuid = url.split("/")[-1]
-    next_router_state_tree = "%5B%22%22%2C%7B%22children%22%3A%5B%5B%22locale%22%2C%22vi%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22van-ban%22%2C%7B%22children%22%3A%5B%5B%22category%22%2C%22chi-tiet%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%5B%22id%22%2C%22" + uuid + "%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D"
+    next_router_state_tree = (
+        "%5B%22%22%2C%7B%22children%22%3A%5B%5B%22locale%22%2C%22vi%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22van-ban%22%2C%7B%22children%22%3A%5B%5B%22category%22%2C%22chi-tiet%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%5B%22id%22%2C%22"
+        + uuid
+        + "%22%2C%22d%22%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%5D%7D%2Cnull%2Cnull%2Ctrue%5D"
+    )
     headers = {
-    "User-Agent": "Mozilla/5.0 (hoc-crawl-cho-mon-hoc)",
-    "Content-Type": "text/plain;charset=UTF-8",
-    "Next-Action": "0fb12b3561faa05adec51a82efb3e4f4f427f07b",
-    "Accept": "text/x-component",
-    "Accept-Language": "vi,en;q=0.9",
-    "Origin": "https://vbpl.vn",
-    "Referer": url,
-    "Next-Router-State-Tree": next_router_state_tree,
-}
+        "User-Agent": "Mozilla/5.0 (hoc-crawl-cho-mon-hoc)",
+        "Content-Type": "text/plain;charset=UTF-8",
+        "Next-Action": "0fb12b3561faa05adec51a82efb3e4f4f427f07b",
+        "Accept": "text/x-component",
+        "Accept-Language": "vi,en;q=0.9",
+        "Origin": "https://vbpl.vn",
+        "Referer": url,
+        "Next-Router-State-Tree": next_router_state_tree,
+    }
     body = json.dumps([uuid])
     return headers, body
 
 
-#@ Tách HTML theo chunk ID từ phản hồi Flight; trả về None nếu không thấy.
+# @ Tách HTML theo chunk ID từ phản hồi Flight; trả về None nếu không thấy.
 def extract_html_chunk(content: bytes, chunk_id: str = "2") -> str | None:
     """Tách mảnh HTML dạng 'T' (text chunk) khỏi response flight.
 
     Định dạng giả định (suy từ quan sát): <id>:T<độ dài hex>,<nội dung>
     Độ dài đếm bằng BYTE, nên phải cắt trên bytes rồi mới decode.
     """
-    #? Neo đầu dòng để tránh khớp nhầm chuỗi giống marker trong nội dung.
+    # ? Neo đầu dòng để tránh khớp nhầm chuỗi giống marker trong nội dung.
     pattern = re.compile(rb"(?:^|\n)" + chunk_id.encode() + rb":T([0-9a-fA-F]+),")
     m = pattern.search(content)
     if m is None:
         return None
 
-    length = int(m.group(1), 16)          #? Độ dài nội dung tính bằng byte.
-    start = m.end()                        #? HTML bắt đầu ngay sau dấu phẩy.
-    raw = content[start:start + length]
+    length = int(m.group(1), 16)  # ? Độ dài nội dung tính bằng byte.
+    start = m.end()  # ? HTML bắt đầu ngay sau dấu phẩy.
+    raw = content[start : start + length]
 
-    if len(raw) < length:                  #! Phản hồi bị cụt so với độ dài khai báo.
+    if len(raw) < length:  #! Phản hồi bị cụt so với độ dài khai báo.
         print(f"CẢNH BÁO: khai báo {length} byte nhưng chỉ có {len(raw)}")
     return raw.decode("utf-8")
 
 
-
-#@ Lấy text, chuẩn hóa khoảng trắng và nối các dòng.
+# @ Lấy text, chuẩn hóa khoảng trắng và nối các dòng.
 def clean_text(node, separator=" "):
     lines = [" ".join(line.split()) for line in node.get_text().splitlines()]
     return separator.join(line for line in lines if line)
 
 
-#@ Chuyển HTML thành Markdown và đánh dấu các phần của văn bản.
-def html_to_md(state:dict, html: str) -> str|None:
+# @ Chuyển HTML thành Markdown và đánh dấu các phần của văn bản.
+def html_to_md(state: dict, html: str) -> str | None:
     soup = BeautifulSoup(html, "html.parser")
     content = soup.select_one("article.docx-page") or soup.body or soup
 
@@ -109,7 +114,7 @@ def html_to_md(state:dict, html: str) -> str|None:
     for paragraph in content.find_all("p"):
         paragraph.append("\n")
 
-    #? Bảng được xử lý nguyên khối, không lấy lại các đoạn bên trong.
+    # ? Bảng được xử lý nguyên khối, không lấy lại các đoạn bên trong.
     tags = [
         tag
         for tag in content.find_all(["p", "table"])
@@ -136,7 +141,7 @@ def html_to_md(state:dict, html: str) -> str|None:
     phase = "header"
     last_marker = None
 
-    #? Các phần này có thể trải qua nhiều đoạn nhưng chỉ cần một marker.
+    # ? Các phần này có thể trải qua nhiều đoạn nhưng chỉ cần một marker.
     grouped = {"DOCUMENT_TITLE", "PREAMBLE", "PROV_CHAPTER_TITLE"}
 
     for tag in tags:
@@ -166,7 +171,7 @@ def html_to_md(state:dict, html: str) -> str|None:
 
             width = max(len(row) for row in rows)
 
-            #? Header trống chỉ phục vụ Markdown, không phải header dữ liệu.
+            # ? Header trống chỉ phục vụ Markdown, không phải header dữ liệu.
             table_lines = [
                 "| " + " | ".join([""] * width) + " |",
                 "| " + " | ".join(["---"] * width) + " |",
@@ -182,7 +187,7 @@ def html_to_md(state:dict, html: str) -> str|None:
 
         text = clean_text(tag)
 
-        #? Bỏ đoạn rỗng và các đường kẻ trang trí.
+        # ? Bỏ đoạn rỗng và các đường kẻ trang trí.
         if not text or not text.strip("_-—– "):
             continue
 
@@ -190,7 +195,7 @@ def html_to_md(state:dict, html: str) -> str|None:
         classes = raw_classes if isinstance(raw_classes, list) else []
         lines = clean_text(tag, separator="\n").splitlines()
 
-        #? Loại và tên văn bản có thể chung một đoạn, ngăn bằng <br>.
+        # ? Loại và tên văn bản có thể chung một đoạn, ngăn bằng <br>.
         if phase == "header" and lines[0].upper() in document_types:
             blocks.extend(["DOCUMENT_TYPE", lines[0]])
             phase = "title"
@@ -203,7 +208,7 @@ def html_to_md(state:dict, html: str) -> str|None:
         if "prov-chapter" in classes:
             phase = "body"
 
-            #? Tách số Chương khỏi tên nếu chúng nằm chung một đoạn.
+            # ? Tách số Chương khỏi tên nếu chúng nằm chung một đoạn.
             chapter = re.match(
                 r"^(Chương\s+(?:[IVXLCDM]+|\d+))\b(.*)$",
                 text,
@@ -234,9 +239,7 @@ def html_to_md(state:dict, html: str) -> str|None:
             if text.casefold().startswith(("căn cứ ", "theo đề nghị ")):
                 phase = "preamble"
 
-            marker = (
-                "DOCUMENT_TITLE" if phase == "title" else "PREAMBLE"
-            )
+            marker = "DOCUMENT_TITLE" if phase == "title" else "PREAMBLE"
 
         elif phase == "header":
             marker = "DOCUMENT_HEADER"
@@ -244,13 +247,15 @@ def html_to_md(state:dict, html: str) -> str|None:
         else:
             marker = "PROV_CONTENT"
 
-        if marker != "PROV_CONTENT" and (marker != last_marker or marker not in grouped):
-                blocks.append(marker)
+        if marker != "PROV_CONTENT" and (
+            marker != last_marker or marker not in grouped
+        ):
+            blocks.append(marker)
 
         blocks.append(text)
         last_marker = marker
 
-    #? Chuyển metadata thành YAML, giữ tiếng Việt và thứ tự các key.
+    # ? Chuyển metadata thành YAML, giữ tiếng Việt và thứ tự các key.
     metadata = yaml.safe_dump(
         state,
         allow_unicode=True,
@@ -261,36 +266,42 @@ def html_to_md(state:dict, html: str) -> str|None:
 
     return f"---\n{metadata}\n---\n\n{markdown}"
 
-#@ Lấy danh sách văn bản của một trang, tải HTML và ghi HTML/Markdown ra đĩa.
-def crawl(URL, HEADERS, page_number, debug = False):
+
+# @ Lấy danh sách văn bản của một trang, tải HTML và ghi HTML/Markdown ra đĩa.
+def crawl(URL, HEADERS, page_number, debug=False):
     os.makedirs("data/html", exist_ok=True)
-    os.makedirs("data/md", exist_ok= True)
+    os.makedirs("data/md", exist_ok=True)
     all_urls = []
 
     resp = requests.post(URL, headers=HEADERS, data=build_body(page_number), timeout=15)
-    resp.encoding = "utf-8"          #? Giải mã UTF-8 để tránh lỗi hiển thị tiếng Việt.
+    resp.encoding = "utf-8"  # ? Giải mã UTF-8 để tránh lỗi hiển thị tiếng Việt.
     if debug:
         print(resp.status_code)
 
     data = parse_flight(resp.text)
     if data is None:
-        print(resp.text[:500])       #? In đoạn đầu để kiểm tra khi thiếu dòng "1:".
+        print(resp.text[:500])  # ? In đoạn đầu để kiểm tra khi thiếu dòng "1:".
     else:
         # print("total:", data["total"])
         for it in data["items"]:
             if debug:
-                print( it["docNum"],
-                    "|", it["effStatus"]["name"],
-                    "|", it["issueDate"],
-                    "|", it["effFrom"],
-                    "|", it["document_url"]
+                print(
+                    it["docNum"],
+                    "|",
+                    it["effStatus"]["name"],
+                    "|",
+                    it["issueDate"],
+                    "|",
+                    it["effFrom"],
+                    "|",
+                    it["document_url"],
                 )
             state = {
-                    "status": it["effStatus"]["name"],
-                    "issue date": it["issueDate"][:10],
-                    "effective from": it['effFrom'][:10],
-                    "effective to" : it['effTo'][:10] if it['effTo'] is not None else None
-                }   
+                "status": it["effStatus"]["name"],
+                "issue date": it["issueDate"][:10],
+                "effective from": it["effFrom"][:10],
+                "effective to": it["effTo"][:10] if it["effTo"] is not None else None,
+            }
             all_urls.append((it["docNum"], state, it["document_url"]))
 
     for doc_num, state, url in all_urls:
@@ -310,14 +321,15 @@ def crawl(URL, HEADERS, page_number, debug = False):
 
             with open(f"data/html/{file_name}.html", "w", encoding="utf-8") as f:
                 f.write(html)
-            
+
             html_path = Path(f"data/html/{file_name}.html")
             html = html_path.read_text(encoding="utf-8")
 
-            markdown:str|None = html_to_md(state, html)
+            markdown: str | None = html_to_md(state, html)
             if markdown is None:
-                print(f"{url} is not valid for parsing html to markdown, please recheck")
+                print(
+                    f"{url} is not valid for parsing html to markdown, please recheck"
+                )
             else:
                 md_path = Path(f"data/md/{file_name}.md")
                 md_path.write_text(markdown, encoding="utf-8")
-            

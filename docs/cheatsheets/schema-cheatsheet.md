@@ -30,6 +30,7 @@ Nhanh nhưng typo không được phát hiện sớm: `result["anwser"]` tạo m
 ```python
 from typing import TypedDict
 
+
 class RAGState(TypedDict):
     question: str
     retrieved_docs: list[dict]
@@ -43,6 +44,7 @@ Field có thể không tồn tại:
 ```python
 from typing import NotRequired, TypedDict
 
+
 class RAGState(TypedDict):
     question: str
     answer: NotRequired[str]
@@ -54,6 +56,7 @@ Repo đang dùng kiểu này cho cấu hình chunking:
 
 ```python
 from dataclasses import dataclass, field
+
 
 @dataclass(frozen=True)
 class Level:
@@ -73,10 +76,12 @@ Không dùng mutable default kiểu `extra: dict = {}`.
 ```python
 from pydantic import BaseModel, Field
 
+
 class Citation(BaseModel):
     document_number: str
     article: str | None = None
     source_url: str | None = None
+
 
 class LegalAnswer(BaseModel):
     answer: str

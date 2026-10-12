@@ -32,16 +32,17 @@ from langchain_ollama import ChatOllama
 
 model = ChatOllama(model="qwen3.5:4b", temperature=0.1)
 
+
 def search_legal_documents(query: str) -> str:
     """Tìm nội dung liên quan trong kho văn bản pháp luật."""
     return f"Kết quả minh họa cho: {query}"
+
 
 agent = create_deep_agent(
     model=model,
     tools=[search_legal_documents],
     system_prompt=(
-        "Chỉ trả lời từ nguồn do tool cung cấp. "
-        "Nếu thiếu căn cứ, phải nói rõ."
+        "Chỉ trả lời từ nguồn do tool cung cấp. Nếu thiếu căn cứ, phải nói rõ."
     ),
 )
 ```

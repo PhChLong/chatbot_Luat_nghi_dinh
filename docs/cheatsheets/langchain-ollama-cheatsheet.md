@@ -31,10 +31,9 @@ print(response.content)
 from langchain_core.messages import HumanMessage, SystemMessage
 
 messages = [
-    SystemMessage(content=(
-        "Bạn hỗ trợ tra cứu pháp luật. "
-        "Nếu context không đủ, phải nói rõ."
-    )),
+    SystemMessage(
+        content=("Bạn hỗ trợ tra cứu pháp luật. Nếu context không đủ, phải nói rõ.")
+    ),
     HumanMessage(content="Nghị định là gì?"),
 ]
 
@@ -79,10 +78,12 @@ Streaming chỉ hiển thị dần; nó không làm câu trả lời chính xác
 ```python
 from pydantic import BaseModel, Field
 
+
 class LegalAnswer(BaseModel):
     answer: str = Field(description="Câu trả lời ngắn")
     source: str | None = None
     sufficient_context: bool
+
 
 structured_model = model.with_structured_output(LegalAnswer)
 result = structured_model.invoke("Context: Hiệu lực từ 01/01/2026")

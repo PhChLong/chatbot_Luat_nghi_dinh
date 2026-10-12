@@ -17,12 +17,15 @@ Hãy hình dung nó như một flowchart chạy được.
 from typing import TypedDict
 from langgraph.graph import END, START, StateGraph
 
+
 class ChatState(TypedDict):
     question: str
     answer: str
 
+
 def answer_question(state: ChatState) -> dict[str, str]:
     return {"answer": f"Câu hỏi nhận được: {state['question']}"}
+
 
 builder = StateGraph(ChatState)
 builder.add_node("answer", answer_question)
@@ -43,12 +46,15 @@ Luồng: `START -> answer -> END`.
 ```python
 from typing import Literal
 
+
 def classify(state: ChatState) -> dict[str, str]:
     route = "legal" if "nghị định" in state["question"].lower() else "general"
     return {"route": route}
 
+
 def choose_route(state) -> Literal["legal", "general"]:
     return "legal" if state["route"] == "legal" else "general"
+
 
 builder.add_conditional_edges("classify", choose_route)
 ```
