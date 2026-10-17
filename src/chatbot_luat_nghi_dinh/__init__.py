@@ -1,16 +1,15 @@
 from pathlib import Path
 
 import torch
-from dotenv import load_dotenv
 from langchain_core.documents import Document
 
 from .chunking import process_all
+from .deepagent import Agent
 from .embedding import ProxyAITeamVNEmbeddingManager
 from .rag import RAGRetrieval
 from .reranking import ProxyAITeamVNReranker
 from .vector_db import VectorDB
 
-load_dotenv()
 CHUNK_SIZE: int = 1000
 CHUNK_OVERLAP: int = 200
 
@@ -40,17 +39,23 @@ def update_vector_database() -> None:
     vector_store.add_documents(documents=chunks, embeddings=embeddings)
 
 
-def query():
-    query = input("What do u want to ask about?\n")
-    related_chunks = retriever.query(question=query, top_k=20)
+def query(question: str) -> list[tuple[dict, float]]:
+    assert isinstance(question, str)
 
+    related_chunks = retriever.query(question=question, top_k=20)
     reranked_results: list[tuple[dict, float]] = reranker.rerank(
-        query=query, docs=related_chunks, top_k=5
+        query=question, docs=related_chunks, top_k=5
     )
     for chunk, score in reranked_results:
         print(chunk["content"][:50])
         print(score)
+    return reranked_results
 
 
 def chatbot() -> None:
-    print(device)
+    agent = Agent()
+    while True:
+        prompt : str = input(">>>")
+        if prompt == "\\exit":
+            break
+        agent.invoke(prompt)
