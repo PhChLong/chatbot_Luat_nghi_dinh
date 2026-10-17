@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass, field
+from hashlib import sha256
 from pathlib import Path
 
 from langchain_community.document_loaders import (
@@ -168,7 +169,7 @@ def split_document(
     return split_document(next_docs, rest)
 
 
-# @ Chia các section thành chunk văn bản có chồng lấn để phục vụ retrieval.
+#@ Chia section có overlap và gắn ID ổn định để dùng chung trong hai kho.
 def chunk_documents(
     sections_from_all_documents: list[Document],
     chunk_size: int = 1000,
@@ -180,7 +181,19 @@ def chunk_documents(
         separators=["\n\n", "\n", " ", ""],
         length_function=len,
     )
-    chunks: list[Document] = splitter.split_documents(sections_from_all_documents)
+    chunks: list[Document] = []
+    section: Document
+    for section in sections_from_all_documents:
+        section_key: str = sha256(
+            (section.metadata["name"] + "\n" + section.page_content).encode()
+        ).hexdigest()
+        part: Document
+        position: int
+        for position, part in enumerate(splitter.split_documents([section])):
+            part.metadata.update(
+                {"chunk_id": f"{section_key}:{position}", "position": position}
+            )
+            chunks.append(part)
     return chunks
 
 
