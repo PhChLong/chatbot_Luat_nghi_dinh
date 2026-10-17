@@ -10,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "chromadb>=1.5.9",
+    "deepagents>=0.7.24",
     "faiss-cpu>=1.15.1",
     "ipywidgets>=8.1.9",
     "langchain>=1.4.2",
