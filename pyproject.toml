@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.scripts]
-update = "chatbot_luat_nghi_dinh:update_vector_database"
+sync = "chatbot_luat_nghi_dinh:sync"
 query = "chatbot_luat_nghi_dinh:query"
 chatbot = "chatbot_luat_nghi_dinh:chatbot"
 crawl = "crawl_luat_nghi_dinh:main"

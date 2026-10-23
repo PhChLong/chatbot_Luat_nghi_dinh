@@ -6,11 +6,41 @@ import tempfile
 import unicodedata
 from pathlib import Path
 from threading import Lock
+from typing import Literal, TypedDict
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 
 _MANIFEST_LOCK = Lock()
+
+
+class ParsedUnit(TypedDict):
+    """Một đơn vị đã parse, chưa được cấp id trong SQLite."""
+
+    local_id: int
+    parent_local_id: int | None
+    unit_type: Literal["article", "clause", "point"]
+    label: str
+    article_label: str
+    clause_label: str | None
+    title: str | None
+    body: str
+
+
+class ParsedArticle(TypedDict):
+    """Các đoạn nguyên văn theo thứ tự, dùng để chunk toàn bộ một điều."""
+
+    label: str
+    title: str
+    parts: list[str]
+
+
+class ParsedDocument(TypedDict):
+    units: list[ParsedUnit]
+    articles: list[ParsedArticle]
+    document_type: str
+    document_title: str
+    preamble: str
 
 
 def create_database(database_path: str | Path = "legal_units.db") -> None:
@@ -220,7 +250,7 @@ def mark_synced(metadata_path: str | Path, document_id: int, branch: int) -> Non
                 temporary.unlink(missing_ok=True)
 
 
-def parse_html(html_path: str | Path) -> dict:
+def parse_html(html_path: str | Path) -> ParsedDocument:
     """Đọc class HTML một lần cho cả SQLite và chunking theo điều.
 
     prov-content và bảng được nối vào đơn vị đang mở; chưa suy luận lại
@@ -229,12 +259,18 @@ def parse_html(html_path: str | Path) -> dict:
     soup = BeautifulSoup(Path(html_path).read_text(encoding="utf-8"), "html.parser")
     content = soup.select_one("article.docx-page") or soup.body or soup
     for tag in content.find_all(["script", "style"]):
-        tag.decompose()
-    units, articles = [], []
-    article = clause = point = None
-    current_article = None
+        if isinstance(tag, Tag):
+            tag.decompose()
+    units: list[ParsedUnit] = []
+    articles: list[ParsedArticle] = []
+    article: ParsedUnit | None = None
+    clause: ParsedUnit | None = None
+    point: ParsedUnit | None = None
+    current_article: ParsedArticle | None = None
+    node: ParsedUnit
     document_type = ""
-    titles, preamble = [], []
+    titles: list[str] = []
+    preamble: list[str] = []
     phase = "header"
     types = {"NGHỊ ĐỊNH", "THÔNG TƯ", "THÔNG TƯ LIÊN TỊCH", "LUẬT", "BỘ LUẬT",
              "QUYẾT ĐỊNH", "NGHỊ QUYẾT", "PHÁP LỆNH"}
@@ -243,20 +279,31 @@ def parse_html(html_path: str | Path) -> dict:
         "prov-clause": re.compile(r"^(\d+[a-zđ]*)\s*[.)]\s*(.*)$", re.I),
         "prov-item": re.compile(r"^([a-zđ]+)\s*[.)]\s*(.*)$", re.I),
     }
-    tags = [t for t in content.find_all(["p", "table"]) if t.find_parent("table") is None]
+    tags = [
+        t for t in content.find_all(["p", "table"])
+        if isinstance(t, Tag) and t.find_parent("table") is None
+    ]
     for tag in tags:
         if tag.name == "table":
             text = "\n".join(
                 "\t".join(" ".join(cell.get_text(" ", strip=True).split())
-                          for cell in row.find_all(["td", "th"], recursive=False))
-                for row in tag.find_all("tr")
+                          for cell in row.find_all(["td", "th"], recursive=False)
+                          if isinstance(cell, Tag))
+                for row in tag.find_all("tr") if isinstance(row, Tag)
             ).strip()
         else:
             text = " ".join(tag.get_text(" ", strip=True).split())
         text = unicodedata.normalize("NFC", text)
         if not text:
             continue
-        classes = tag.get("class", [])
+        raw_classes = tag.get("class")
+        classes: list[str]
+        if isinstance(raw_classes, str):
+            classes = raw_classes.split()
+        elif isinstance(raw_classes, list):
+            classes = [str(value) for value in raw_classes]
+        else:
+            classes = []
         if "prov-chapter" in classes or "prov-section" in classes:
             article = clause = point = None
             current_article = None
@@ -267,27 +314,27 @@ def parse_html(html_path: str | Path) -> dict:
             match = patterns[kind].match(text)
             if match is None:
                 raise ValueError(f"{html_path}: không đọc được nhãn {kind}: {text[:100]}")
-            label, remainder = match.groups()
+            label, remainder = match.group(1), match.group(2)
             local_id = len(units)
             if kind == "prov-article":
                 phase = "body"
-                node = dict(local_id=local_id, parent_local_id=None, unit_type="article",
+                node = ParsedUnit(local_id=local_id, parent_local_id=None, unit_type="article",
                             label=label, article_label=label, clause_label=None,
                             title=remainder or None, body="")
                 article, clause, point = node, None, None
-                current_article = {"label": label, "title": remainder, "parts": []}
+                current_article = ParsedArticle(label=label, title=remainder, parts=[])
                 articles.append(current_article)
             elif kind == "prov-clause":
                 if article is None:
                     raise ValueError(f"{html_path}: khoản {label} không có điều cha.")
-                node = dict(local_id=local_id, parent_local_id=article["local_id"],
+                node = ParsedUnit(local_id=local_id, parent_local_id=article["local_id"],
                             unit_type="clause", label=label, article_label=article["label"],
                             clause_label=label, title=None, body=remainder)
                 clause, point = node, None
             else:
-                if clause is None:
-                    raise ValueError(f"{html_path}: điểm {label} không có khoản cha.")
-                node = dict(local_id=local_id, parent_local_id=clause["local_id"],
+                if article is None or clause is None:
+                    raise ValueError(f"{html_path}: điểm {label} không có điều hoặc khoản cha.")
+                node = ParsedUnit(local_id=local_id, parent_local_id=clause["local_id"],
                             unit_type="point", label=label, article_label=article["label"],
                             clause_label=clause["label"], title=None, body=remainder)
                 point = node
@@ -309,7 +356,7 @@ def parse_html(html_path: str | Path) -> dict:
             "document_title": " ".join(titles), "preamble": "\n".join(preamble)}
 
 
-def insert_metadata(connection: sqlite3.Connection, metadata: dict, parsed: dict, source: str) -> None:
+def insert_metadata(connection: sqlite3.Connection, metadata: dict, parsed: ParsedDocument, source: str) -> None:
     """Insert metadata; transaction và commit do hàm gọi quản lý."""
     connection.execute(
         """INSERT INTO metadata (
@@ -322,7 +369,7 @@ def insert_metadata(connection: sqlite3.Connection, metadata: dict, parsed: dict
     )
 
 
-def insert_unit(connection: sqlite3.Connection, document_id: int, parent_id: int | None, unit: dict) -> int:
+def insert_unit(connection: sqlite3.Connection, document_id: int, parent_id: int | None, unit: ParsedUnit) -> int:
     """Insert một đơn vị, trả id để các đơn vị con dùng làm parent_id."""
     cursor = connection.execute(
         """INSERT INTO legal_units (
@@ -331,7 +378,10 @@ def insert_unit(connection: sqlite3.Connection, document_id: int, parent_id: int
         (document_id, parent_id, unit["unit_type"], unit["label"], unit["article_label"],
          unit["clause_label"], unit["title"], unit["body"]),
     )
-    return cursor.lastrowid
+    unit_id = cursor.lastrowid
+    if unit_id is None:
+        raise RuntimeError("SQLite không trả về id của đơn vị vừa insert.")
+    return unit_id
 
 
 def sync_database(
