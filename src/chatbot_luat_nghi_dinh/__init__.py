@@ -1,9 +1,10 @@
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import torch
-from langchain_core.documents import Document
 
-from .chunking import process_all
+from .chunking import sync_chroma
+from .database import sync_database
 from .deepagent import Agent
 from .embedding import ProxyAITeamVNEmbeddingManager
 from .rag import RAGRetrieval
@@ -27,16 +28,33 @@ retriever = RAGRetrieval(vector_db=vector_store, embedding_manager=embedding_man
 reranker = ProxyAITeamVNReranker(device=device)
 
 
-# @ Khởi tạo model embedding và in kết quả mã hóa văn bản mẫu.
-def update_vector_database() -> None:
-    print("Hello from chatbot-luat-nghi-dinh!")
-    chunks: list[Document] = process_all(
-        Path("data/md"), chunk_size=CHUNK_SIZE, chunk_overlap=CHUNK_OVERLAP
-    )
+def sync(
+    metadata_path: str | Path = "data/metadata.json",
+    html_path: str | Path = "data/html",
+    database_path: str | Path = "legal_units.db",
+) -> dict:
+    """Chạy đồng thời SQLite và Chroma, mỗi nhánh tự cập nhật cờ riêng.
 
-    texts_from_chunks: list[str] = [chunk.page_content for chunk in chunks]
-    embeddings = embedding_manager.generate_embeddings(texts_from_chunks)
-    vector_store.add_documents(documents=chunks, embeddings=embeddings)
+    sync=[SQLite, Chroma]. Lỗi được trả về kèm tên văn bản và document_id.
+    Chỉ chạy một tiến trình sync; không chạy crawler đồng thời trên JSON này.
+    """
+    results = {}
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        jobs = {
+            "sqlite": executor.submit(sync_database, metadata_path, html_path, database_path),
+            "chroma": executor.submit(
+                sync_chroma, embedding_manager, vector_store, metadata_path, html_path,
+                CHUNK_SIZE, CHUNK_OVERLAP,
+            ),
+        }
+        for branch, future in jobs.items():
+            try:
+                results[branch] = future.result()
+            except Exception as exc:
+                results[branch] = {"synced": [], "errors": [{"error": str(exc)}]}
+            for error in results[branch]["errors"]:
+                print(f"[{branch}] {error}")
+    return results
 
 
 def query(question: str) -> list[tuple[dict, float]]:

@@ -7,23 +7,6 @@ from langchain_ollama import ChatOllama
 from .prompts import *
 
 load_dotenv()
-# qwen = ChatOllama(
-#     model="qwen3.5:4b",
-#     temperature=0.1,
-# )
-
-# llm: ChatOllama = ChatOllama(
-#     model="smollm2:135m",
-#     temperature=0.1,
-# )
-
-# agent = create_deep_agent(
-#     model= llm,
-#     tools = [],
-#     system_prompt= (
-#         SYSTEM_PROMPT
-#     )
-# )
 
 type MessageType = HumanMessage | SystemMessage
 class Agent:
