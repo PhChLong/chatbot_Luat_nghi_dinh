@@ -1,6 +1,10 @@
 from typing import Literal, TypedDict
 
 from langgraph.graph import END, START, StateGraph
+from .deepagent import Agent
+from .prompts import CLASSIFY_PROMPT, EXTRACT_PROMPT
+import re
+import json
 
 QuestionType = Literal["metadata", "document_content", "situation", "chitchat"]  #?: 4 route; quan hệ giữa các văn bản gộp vào metadata nhờ trích lúc ingest
 MAX_RETRIES: int = 2  #?: giới hạn vòng retrieve lại để model local không lặp vô hạn
@@ -22,15 +26,16 @@ class RagState(TypedDict):
     clarify_reason: str | None  #?: khác None thì graph rẽ sang node clarify
     answer: str
 
-
-#@ Viết lại câu hỏi thành câu độc lập và trích entity bằng regex
-def preprocess(state: RagState) -> dict:
-    return {}
-
+class ExtractedInfo(TypedDict):
+    name: str | None  #?: số hiệu dạng gạch ngang, vd "13-2026-TT-BNG"
+    article_label: str | None  #?: Điều; string vì có Điều kiểu "5a"
+    clause_label: str | None  #?: Khoản
+    label: str | None  #?: chữ cái của Điểm, có thể là "đ"
 
 #@ Phân loại câu hỏi thành 1 trong 4 route
 def classify(state: RagState) -> dict:
-    return {}
+    classify_agent = Agent(CLASSIFY_PROMPT, temperature=0)
+    return {"question_type": classify_agent.invoke(state['question'])}
 
 
 #@ Chọn route; giá trị lạ rơi về chitchat
@@ -38,17 +43,44 @@ def choose_route(state: RagState) -> str:
     qtype: str = state["question_type"]
     return qtype if qtype in ("metadata", "document_content", "situation") else "chitchat"
 
-
 # ───────── metadata ─────────
-#@ LLM điền JSON schema filter (số hiệu, cơ quan, ngày, loại, lĩnh vực)
-def meta_extract_filters(state: RagState) -> dict:
-    return {}
+EMPTY_INFO: ExtractedInfo = {"name": None, "article_label": None, "clause_label": None, "label": None}
 
 
-#@ Query metadata store thuần code; tự tính hiệu lực theo as_of_date
-def meta_query(state: RagState) -> dict:
-    return {}
+#@ Chuẩn hóa 1 giá trị: chuỗi rỗng/"null" -> None, bỏ khoảng trắng
+def clean_value(value: object) -> str | None:
+    if value is None:
+        return None
+    text: str = str(value).strip()
+    return None if text.lower() in ("", "null", "none") else text
 
+
+#@ Parse output của model thành ExtractedInfo; JSON hỏng thì trả EMPTY_INFO
+def parse_extracted(raw: str) -> ExtractedInfo:
+    match: re.Match[str] | None = re.search(r"\{.*\}", raw, re.DOTALL)  #?: model local hay chèn chữ trước/sau JSON
+    if match is None:
+        return dict(EMPTY_INFO)  # type: ignore[return-value]
+    try:
+        data: dict = json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return dict(EMPTY_INFO)  # type: ignore[return-value]
+
+    name: str | None = clean_value(data.get("name"))
+    if name is not None:
+        name = name.replace("/", "-").replace(" ", "")  #?: phòng khi model quên đổi dấu "/"
+    return {
+        "name": name,
+        "article_label": clean_value(data.get("article_label")),
+        "clause_label": clean_value(data.get("clause_label")),
+        "label": clean_value(data.get("label")),
+    }
+
+
+#@ Node trích xuất: gọi LLM với câu hỏi rồi parse ra 4 trường
+def extract_info(state: RagState) -> ExtractedInfo:
+    extractor_agent = Agent(EXTRACT_PROMPT, temperature=0)
+    raw: str = extractor_agent.invoke(state['question'])
+    return parse_extracted(raw)
 
 #@ Format câu trả lời bằng template
 def meta_answer(state: RagState) -> dict:
@@ -136,8 +168,8 @@ def build_graph():
     g: StateGraph = StateGraph(RagState)
 
     node_fns: dict = {
-        "preprocess": preprocess, "classify": classify,
-        "meta_extract_filters": meta_extract_filters, "meta_query": meta_query, "meta_answer": meta_answer,
+        "classify": classify,
+        "extract_info": extract_info, "meta_answer": meta_answer,
         "doc_resolve": doc_resolve, "doc_retrieve": doc_retrieve, "doc_grade": doc_grade,
         "doc_rewrite_query": doc_rewrite_query, "doc_generate": doc_generate,
         "sit_analyze": sit_analyze, "sit_retrieve": sit_retrieve, "sit_filter_validity": sit_filter_validity,
@@ -148,8 +180,7 @@ def build_graph():
     for name, fn in node_fns.items():
         g.add_node(name, fn)
 
-    g.add_edge(START, "preprocess")
-    g.add_edge("preprocess", "classify")
+    g.add_edge(START, "classify")
     g.add_conditional_edges("classify", choose_route, {
         "metadata": "meta_extract_filters",
         "document_content": "doc_resolve",

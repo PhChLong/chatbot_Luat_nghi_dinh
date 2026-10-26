@@ -197,7 +197,6 @@ def query_content(
         connection.close()
 
 
-
 def read_metadata(metadata_path: str | Path = "data/metadata.json") -> list[dict]:
     """Đọc danh sách metadata; sync[0] là SQLite, sync[1] là Chroma.
 
