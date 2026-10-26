@@ -1,0 +1,254 @@
+{
+  "meta": {
+    "description": "Bộ 30 câu hỏi - đáp án để test router: metadata / relation / document_content",
+    "as_of_date": "2026-10-26",
+    "corpus": "20 văn bản (NĐ-CP, TT) ban hành 30/09/2026 - 05/10/2026",
+    "notes": [
+      "Các câu về 'đã có hiệu lực chưa' được tính tại as_of_date 2026-10-26.",
+      "Đáp án chỉ dựa trên 20 văn bản trong corpus, không dựa vào kiến thức bên ngoài.",
+      "Câu dạng liệt kê (listing) chỉ đầy đủ trong phạm vi corpus."
+    ]
+  },
+  "questions": [
+    {
+      "id": "M01",
+      "question_type": "metadata",
+      "question": "Thông tư nào ban hành Quy chuẩn kỹ thuật quốc gia về sinh trắc học giọng nói, do cơ quan nào ban hành và ban hành ngày nào?",
+      "answer": "Thông tư số 169/2026/TT-BCA của Bộ Công an, ban hành ngày 01/10/2026, ban hành QCVN 16:2026/BCA về sinh trắc học giọng nói.",
+      "source_docs": ["169/2026/TT-BCA"],
+      "evidence": "Phần đầu văn bản; Điều 1"
+    },
+    {
+      "id": "M02",
+      "question_type": "metadata",
+      "question": "Nghị định 376/2026/NĐ-CP quy định về vấn đề gì và có hiệu lực từ khi nào?",
+      "answer": "Nghị định 376/2026/NĐ-CP do Chính phủ ban hành ngày 01/10/2026, quy định chức năng, nhiệm vụ, quyền hạn và cơ cấu tổ chức của Bộ Tài chính; có hiệu lực thi hành từ ngày 01/10/2026.",
+      "source_docs": ["376/2026/NĐ-CP"],
+      "evidence": "Phần đầu văn bản; Điều 5 khoản 1"
+    },
+    {
+      "id": "M03",
+      "question_type": "metadata",
+      "question": "Thông tư 145/2026/TT-BTC về đăng ký, lưu ký, bù trừ chứng khoán đã có hiệu lực chưa? Nếu chưa thì bao giờ có hiệu lực?",
+      "answer": "Chưa. Thông tư 145/2026/TT-BTC ban hành ngày 30/09/2026 và có hiệu lực từ ngày 16/11/2026, nên tại ngày 26/10/2026 chưa có hiệu lực.",
+      "source_docs": ["145/2026/TT-BTC"],
+      "evidence": "Điều 64 khoản 1"
+    },
+    {
+      "id": "M04",
+      "question_type": "metadata",
+      "question": "Thông tư 62/2026/TT-BCT sửa đổi quy chuẩn kỹ thuật nào, ban hành ngày nào và có hiệu lực từ khi nào?",
+      "answer": "Thông tư 62/2026/TT-BCT của Bộ Công Thương, ban hành ngày 30/09/2026, ban hành Sửa đổi 01:2026 QCVN 09:2015/BCT về sản phẩm khăn giấy và giấy vệ sinh; có hiệu lực từ ngày 15/11/2026 (tại 26/10/2026 chưa có hiệu lực).",
+      "source_docs": ["62/2026/TT-BCT"],
+      "evidence": "Phần đầu văn bản; Điều 1; Điều 2"
+    },
+    {
+      "id": "M05",
+      "question_type": "metadata",
+      "question": "Bộ Công an đã ban hành những thông tư nào trong bộ văn bản này, mỗi thông tư nói về gì?",
+      "answer": "Có 3 thông tư, cùng ban hành ngày 01/10/2026: 169/2026/TT-BCA (QCVN 16:2026/BCA về sinh trắc học giọng nói), 170/2026/TT-BCA (QCVN 17:2026/BCA về sinh trắc học mống mắt), 171/2026/TT-BCA (quy định chi tiết một số điều của Nghị định 304/2026/NĐ-CP về huy động tiềm lực khoa học và công nghệ, kỹ thuật phục vụ hoạt động của Công an nhân dân).",
+      "source_docs": ["169/2026/TT-BCA", "170/2026/TT-BCA", "171/2026/TT-BCA"],
+      "evidence": "Phần đầu của từng văn bản"
+    },
+    {
+      "id": "M06",
+      "question_type": "metadata",
+      "question": "Liệt kê các văn bản được ban hành ngày 30 tháng 9 năm 2026.",
+      "answer": "Có 5 văn bản: Thông tư 145/2026/TT-BTC, Thông tư 62/2026/TT-BCT, Thông tư 73/2026/TT-BXD, Nghị định 373/2026/NĐ-CP và Nghị định 374/2026/NĐ-CP.",
+      "source_docs": ["145/2026/TT-BTC", "62/2026/TT-BCT", "73/2026/TT-BXD", "373/2026/NĐ-CP", "374/2026/NĐ-CP"],
+      "evidence": "Phần đầu của từng văn bản"
+    },
+    {
+      "id": "M07",
+      "question_type": "metadata",
+      "question": "Có những văn bản nào bắt đầu có hiệu lực từ ngày 01/12/2026?",
+      "answer": "Thông tư 73/2026/TT-BXD (phân cấp và quy trình kiểm tra chuyên ngành) và Thông tư 76/2026/TT-BXD (định mức chi phí, lợi nhuận dịch vụ sự nghiệp công bảo đảm an toàn hàng hải; áp dụng từ năm tài chính 2027).",
+      "source_docs": ["73/2026/TT-BXD", "76/2026/TT-BXD"],
+      "evidence": "73: Điều 10 khoản 1; 76: Điều 3 khoản 1"
+    },
+    {
+      "id": "M08",
+      "question_type": "metadata",
+      "question": "Nghị định 381/2026/NĐ-CP do cơ quan nào ban hành, ban hành ngày nào, quy định về gì và có hiệu lực khi nào?",
+      "answer": "Do Chính phủ ban hành ngày 02/10/2026, quy định phụ cấp công vụ đối với cán bộ, công chức làm việc trong các cơ quan của Đảng, Nhà nước, Mặt trận Tổ quốc Việt Nam, tổ chức chính trị - xã hội ở xã, phường, đặc khu; có hiệu lực từ ngày ký ban hành (02/10/2026), chế độ phụ cấp áp dụng từ ngày 01/07/2026.",
+      "source_docs": ["381/2026/NĐ-CP"],
+      "evidence": "Phần đầu văn bản; Điều 6 khoản 1, khoản 2"
+    },
+    {
+      "id": "M09",
+      "question_type": "metadata",
+      "question": "Thông tư 170/2026/TT-BCA có hiệu lực chưa?",
+      "answer": "Chưa. Thông tư 170/2026/TT-BCA (ban hành QCVN 17:2026/BCA về sinh trắc học mống mắt) ban hành ngày 01/10/2026 và có hiệu lực từ ngày 15/04/2027.",
+      "source_docs": ["170/2026/TT-BCA"],
+      "evidence": "Điều 2"
+    },
+    {
+      "id": "M10",
+      "question_type": "metadata",
+      "question": "Tìm các thông tư hướng dẫn Luật Thi đua, khen thưởng do các bộ ban hành ngày 01/10/2026.",
+      "answer": "Có 4 thông tư: 13/2026/TT-BNG (ngành Ngoại giao), 25/2026/TT-BNV (Bộ Nội vụ, quy định biện pháp tổ chức, hướng dẫn thi hành Luật), 146/2026/TT-BTC (ngành Tài chính) và 155/2026/TT-BQP (Quân đội nhân dân Việt Nam). Cả 4 đều có hiệu lực từ 01/10/2026.",
+      "source_docs": ["13/2026/TT-BNG", "25/2026/TT-BNV", "146/2026/TT-BTC", "155/2026/TT-BQP"],
+      "evidence": "Phần đầu và điều khoản hiệu lực của từng văn bản"
+    },
+    {
+      "id": "R01",
+      "question_type": "relation",
+      "question": "Thông tư 146/2026/TT-BTC bãi bỏ văn bản nào?",
+      "answer": "Bãi bỏ Thông tư số 118/2025/TT-BTC ngày 15/12/2025 của Bộ trưởng Bộ Tài chính (quy định chi tiết thi hành một số điều của Luật Thi đua, khen thưởng và Nghị định 152/2025/NĐ-CP đối với ngành Tài chính). Hồ sơ đã được tiếp nhận trước ngày hiệu lực vẫn được thẩm định theo Thông tư 118/2025/TT-BTC, trừ khi áp dụng Thông tư mới có lợi hơn.",
+      "source_docs": ["146/2026/TT-BTC"],
+      "evidence": "Điều khoản hiệu lực thi hành khoản 2; quy định chuyển tiếp khoản 3"
+    },
+    {
+      "id": "R02",
+      "question_type": "relation",
+      "question": "Thông tư 145/2026/TT-BTC bãi bỏ những thông tư nào, và bãi bỏ toàn bộ hay một phần?",
+      "answer": "Bãi bỏ toàn bộ Thông tư 119/2020/TT-BTC. Bãi bỏ một phần: khoản 2 Điều 5 Thông tư 68/2024/TT-BTC; Điều 1 Thông tư 14/2025/TT-BTC; Điều 1 Thông tư 18/2025/TT-BTC.",
+      "source_docs": ["145/2026/TT-BTC"],
+      "evidence": "Điều 64 khoản 2 điểm a, b, c, d"
+    },
+    {
+      "id": "R03",
+      "question_type": "relation",
+      "question": "Nghị định 376/2026/NĐ-CP thay thế những văn bản nào về tổ chức của Bộ Tài chính?",
+      "answer": "Bãi bỏ Nghị định 29/2025/NĐ-CP (quy định chức năng, nhiệm vụ, quyền hạn, cơ cấu tổ chức của Bộ Tài chính), Nghị định 166/2025/NĐ-CP (sửa đổi Nghị định 29/2025/NĐ-CP) và khoản 3 Điều 4 Nghị định 109/2025/NĐ-CP (về Thanh tra Chính phủ).",
+      "source_docs": ["376/2026/NĐ-CP"],
+      "evidence": "Điều 5 khoản 2 điểm a, b, c"
+    },
+    {
+      "id": "R04",
+      "question_type": "relation",
+      "question": "Nghị định 373/2026/NĐ-CP về chuyển đơn vị sự nghiệp công lập thành doanh nghiệp bãi bỏ những văn bản nào?",
+      "answer": "Bãi bỏ Nghị định 150/2020/NĐ-CP ngày 25/12/2020 về chuyển đơn vị sự nghiệp công lập thành Công ty cổ phần, và Điều 41 Nghị định 125/2025/NĐ-CP ngày 11/6/2025 (phân định thẩm quyền chính quyền địa phương 02 cấp trong lĩnh vực quản lý nhà nước của Bộ Tài chính).",
+      "source_docs": ["373/2026/NĐ-CP"],
+      "evidence": "Điều 50 khoản 1 điểm a, b"
+    },
+    {
+      "id": "R05",
+      "question_type": "relation",
+      "question": "Thông tư 65/2026/TT-BCT hướng dẫn nghị định nào và thay thế những thông tư nào?",
+      "answer": "Hướng dẫn Nghị định 365/2026/NĐ-CP ngày 23/9/2026 về kinh doanh xuất, nhập khẩu gạo. Bãi bỏ Thông tư 30/2018/TT-BCT, Thông tư 35/2025/TT-BCT và Điều 26 Thông tư 42/2019/TT-BCT. Danh mục mã HS thóc, gạo xuất khẩu tại Thông tư 08/2023/TT-BCT vẫn tiếp tục thực hiện cho đến khi có văn bản sửa đổi, bổ sung hoặc thay thế.",
+      "source_docs": ["65/2026/TT-BCT"],
+      "evidence": "Phần đầu văn bản; Điều 17 khoản 2, 3, 4"
+    },
+    {
+      "id": "R06",
+      "question_type": "relation",
+      "question": "Thông tư 25/2026/TT-BNV thay thế thông tư nào và căn cứ vào nghị định nào của Chính phủ?",
+      "answer": "Thay thế Thông tư 15/2025/TT-BNV ngày 04/8/2025 của Bộ trưởng Bộ Nội vụ. Căn cứ vào Nghị định 368/2026/NĐ-CP ngày 25/9/2026 (chi tiết một số điều và biện pháp thi hành Luật Thi đua, khen thưởng) và Nghị định 276/2026/NĐ-CP ngày 08/7/2026 (cơ cấu tổ chức của Bộ Nội vụ).",
+      "source_docs": ["25/2026/TT-BNV"],
+      "evidence": "Phần căn cứ; điều khoản hiệu lực thi hành"
+    },
+    {
+      "id": "R07",
+      "question_type": "relation",
+      "question": "Những thông tư nào trong bộ văn bản này lấy Nghị định 351/2026/NĐ-CP về tổ chức của Bộ Công Thương làm căn cứ?",
+      "answer": "Thông tư 62/2026/TT-BCT và Thông tư 65/2026/TT-BCT.",
+      "source_docs": ["62/2026/TT-BCT", "65/2026/TT-BCT"],
+      "evidence": "Phần căn cứ của từng văn bản"
+    },
+    {
+      "id": "R08",
+      "question_type": "relation",
+      "question": "Thông tư 13/2026/TT-BNG làm văn bản nào hết hiệu lực, và hồ sơ đã gửi trước ngày có hiệu lực được xử lý theo văn bản nào?",
+      "answer": "Làm Thông tư 01/2026/TT-BNG ngày 01/01/2026 hết hiệu lực kể từ ngày 01/10/2026. Hồ sơ đã gửi về Bộ Ngoại giao trước ngày đó tiếp tục thực hiện theo Thông tư 01/2026/TT-BNG, nhưng nếu áp dụng Thông tư 13/2026/TT-BNG có lợi hơn cho tập thể, cá nhân thì áp dụng Thông tư 13/2026/TT-BNG.",
+      "source_docs": ["13/2026/TT-BNG"],
+      "evidence": "Điều 27 khoản 2; Điều 28"
+    },
+    {
+      "id": "R09",
+      "question_type": "relation",
+      "question": "Thông tư 171/2026/TT-BCA quy định chi tiết cho nghị định nào?",
+      "answer": "Quy định chi tiết một số điều của Nghị định 304/2026/NĐ-CP ngày 03/8/2026 của Chính phủ về huy động tiềm lực khoa học và công nghệ, kỹ thuật phục vụ hoạt động của Công an nhân dân.",
+      "source_docs": ["171/2026/TT-BCA"],
+      "evidence": "Phần đầu văn bản; Điều 1"
+    },
+    {
+      "id": "R10",
+      "question_type": "relation",
+      "question": "Những thông tư nào trong bộ văn bản này lấy Nghị định 368/2026/NĐ-CP làm căn cứ ban hành?",
+      "answer": "Thông tư 13/2026/TT-BNG, Thông tư 25/2026/TT-BNV và Thông tư 155/2026/TT-BQP. Thông tư 146/2026/TT-BTC không dẫn chiếu Nghị định này.",
+      "source_docs": ["13/2026/TT-BNG", "25/2026/TT-BNV", "155/2026/TT-BQP"],
+      "evidence": "Phần căn cứ của từng văn bản"
+    },
+    {
+      "id": "D01",
+      "question_type": "document_content",
+      "question": "Mức phụ cấp công vụ của cán bộ, công chức cấp xã theo Nghị định 381/2026/NĐ-CP là bao nhiêu?",
+      "answer": "Có hai mức, tính trên mức lương hiện hưởng cộng phụ cấp chức vụ lãnh đạo và phụ cấp thâm niên vượt khung (nếu có): 55% đối với người không được hưởng tiền lương, thu nhập tăng thêm theo Nghị quyết của Hội đồng nhân dân tỉnh, thành phố; 25% đối với người được hưởng tiền lương, thu nhập tăng thêm theo Nghị quyết đó. Nếu người thuộc mức 25% được hưởng tiền lương, thu nhập tăng thêm thấp hơn mức phụ cấp công vụ 55% thì được hưởng chênh lệch cho bằng mức 55%.",
+      "source_docs": ["381/2026/NĐ-CP"],
+      "evidence": "Điều 3 khoản 1, 2, 3"
+    },
+    {
+      "id": "D02",
+      "question_type": "document_content",
+      "question": "Những khoảng thời gian nào không được tính hưởng phụ cấp công vụ theo Nghị định 381/2026/NĐ-CP?",
+      "answer": "Gồm: (a) thời gian đi công tác, làm việc, học tập ở nước ngoài được hưởng 40% tiền lương theo khoản 4 Điều 8 Nghị định 204/2004/NĐ-CP; (b) thời gian nghỉ việc không hưởng lương liên tục từ 01 tháng trở lên; (c) thời gian nghỉ việc hưởng trợ cấp bảo hiểm xã hội; (d) thời gian bị tạm đình chỉ công tác hoặc bị tạm giữ, tạm giam.",
+      "source_docs": ["381/2026/NĐ-CP"],
+      "evidence": "Điều 4 khoản 2 điểm a, b, c, d"
+    },
+    {
+      "id": "D03",
+      "question_type": "document_content",
+      "question": "Lộ trình áp dụng ưu đãi trong nước đối với các gói thầu thuộc Phụ lục I và Phụ lục III của Nghị định 374/2026/NĐ-CP như thế nào?",
+      "answer": "Từ ngày Nghị định có hiệu lực đến hết ngày 13/01/2029, tổng giá trị ưu đãi trong nước trong một năm không vượt quá 40% tổng giá hợp đồng các gói thầu thuộc phạm vi điều chỉnh; từ ngày 14/01/2029 đến hết ngày 31/7/2038 không vượt quá 30%; từ ngày 01/8/2038 trở đi, cơ quan mua sắm không được áp dụng biện pháp ưu đãi trong nước.",
+      "source_docs": ["374/2026/NĐ-CP"],
+      "evidence": "Điều 10 khoản 2 điểm a, b, c"
+    },
+    {
+      "id": "D04",
+      "question_type": "document_content",
+      "question": "Theo Nghị định 377/2026/NĐ-CP, dự án PPP áp dụng hợp đồng BT không yêu cầu thanh toán phải bảo đảm thực hiện hợp đồng như thế nào?",
+      "answer": "Nhà đầu tư, doanh nghiệp dự án PPP phải thực hiện biện pháp bảo đảm thực hiện hợp đồng trước thời điểm hợp đồng có hiệu lực, với giá trị bảo đảm là 1% tổng mức đầu tư của dự án. Đây là khoản 5 được bổ sung vào sau khoản 4 Điều 34 Nghị định 243/2025/NĐ-CP.",
+      "source_docs": ["377/2026/NĐ-CP"],
+      "evidence": "Điều 19"
+    },
+    {
+      "id": "D05",
+      "question_type": "document_content",
+      "question": "Tỷ lệ khoán chi phí quản lý, xử lý tài sản là tang vật, phương tiện vi phạm hành chính bị tịch thu thuộc phạm vi quản lý của Bộ Quốc phòng tối đa là bao nhiêu?",
+      "answer": "Không vượt quá 40% số tiền thu được từ xử lý tài sản được xác lập quyền sở hữu toàn dân.",
+      "source_docs": ["157/2026/TT-BQP"],
+      "evidence": "Điều 11 khoản 2"
+    },
+    {
+      "id": "D06",
+      "question_type": "document_content",
+      "question": "Ai có thẩm quyền quyết định xác lập quyền sở hữu toàn dân đối với tài sản do chủ sở hữu tự nguyện chuyển giao cho Nhà nước thông qua Bộ Quốc phòng?",
+      "answer": "Bộ trưởng Bộ Quốc phòng quyết định khi việc chuyển giao không xác định cụ thể cơ quan, đơn vị, doanh nghiệp tiếp nhận, quản lý, sử dụng tài sản. Thủ trưởng đơn vị trực thuộc Bộ Quốc phòng quyết định đối với tài sản do cơ quan, đơn vị, doanh nghiệp thuộc phạm vi quản lý là đơn vị chủ trì quản lý tài sản, trừ trường hợp thuộc thẩm quyền của Bộ trưởng.",
+      "source_docs": ["157/2026/TT-BQP"],
+      "evidence": "Điều 6 khoản 1, 2"
+    },
+    {
+      "id": "D07",
+      "question_type": "document_content",
+      "question": "Trong trường hợp nào Bộ trưởng Bộ Xây dựng trực tiếp quyết định việc kiểm tra chuyên ngành?",
+      "answer": "Khi: (a) nội dung kiểm tra thuộc phạm vi quản lý của từ hai Cục trở lên; (b) đối tượng kiểm tra là Bộ, ngành, Ủy ban nhân dân tỉnh, thành phố trực thuộc trung ương; (c) cuộc kiểm tra có nội dung phức tạp, nhạy cảm, phạm vi rộng hoặc liên quan đến trách nhiệm của nhiều cơ quan, đơn vị, địa phương.",
+      "source_docs": ["73/2026/TT-BXD"],
+      "evidence": "Điều 3 khoản 3 điểm a, b, c"
+    },
+    {
+      "id": "D08",
+      "question_type": "document_content",
+      "question": "Hồ sơ yêu cầu bồi thường cơ sở vật chất, kỹ thuật được huy động của Công an nhân dân gồm những gì, nộp cho ai và nộp bằng cách nào?",
+      "answer": "Nộp cho Cục Khoa học, chiến lược và lịch sử Công an. Hồ sơ gồm: đơn yêu cầu bồi thường (Mẫu số 07 ban hành kèm Thông tư) và hồ sơ, tài liệu chứng minh thiệt hại thực tế, trực tiếp do việc huy động tiềm lực gây ra, cùng căn cứ xác định mức yêu cầu bồi thường. Nộp 01 hồ sơ theo phương thức trực tuyến, trực tiếp hoặc qua dịch vụ bưu chính; nếu hồ sơ có yêu cầu về bí mật nhà nước, an ninh, an toàn thông tin thì chỉ nộp trực tiếp.",
+      "source_docs": ["171/2026/TT-BCA"],
+      "evidence": "Điều 9 khoản 1, 2, 3"
+    },
+    {
+      "id": "D09",
+      "question_type": "document_content",
+      "question": "Thông tư 76/2026/TT-BXD áp dụng cho những dịch vụ sự nghiệp công nào và ban hành những loại định mức gì?",
+      "answer": "Áp dụng cho dịch vụ sự nghiệp công bảo đảm an toàn hàng hải sử dụng ngân sách nhà nước từ nguồn chi thường xuyên theo phương thức đặt hàng, gồm: (a) vận hành, bảo trì đèn biển, đăng tiêu độc lập; (b) vận hành, bảo trì hệ thống báo hiệu hàng hải trên luồng hàng hải công cộng; (c) khảo sát định kỳ phục vụ công bố thông báo hàng hải. Ban hành 3 loại định mức: chi phí sản xuất chung, chi phí quản lý và lợi nhuận.",
+      "source_docs": ["76/2026/TT-BXD"],
+      "evidence": "Điều 1 khoản 1; Điều 2"
+    },
+    {
+      "id": "D10",
+      "question_type": "document_content",
+      "question": "Quy định chuyển tiếp của Thông tư 62/2026/TT-BCT đối với sản phẩm khăn giấy và giấy vệ sinh là gì?",
+      "answer": "Hồ sơ công bố hợp quy, giấy chứng nhận hợp quy đã được cấp trước ngày Thông tư có hiệu lực tiếp tục được thực hiện đến khi hết thời hạn hiệu lực ghi trong hồ sơ, văn bản đó. Sản phẩm đã bao gói, ghi nhãn và lưu thông trước ngày có hiệu lực tiếp tục được lưu thông đến hết hạn sử dụng ghi trên nhãn. Tổ chức đánh giá sự phù hợp đã được chỉ định theo QCVN 09:2015/BCT tiếp tục hoạt động đến hết thời hạn hiệu lực của Quyết định chỉ định.",
+      "source_docs": ["62/2026/TT-BCT"],
+      "evidence": "Điều 3"
+    }
+  ]
+}
