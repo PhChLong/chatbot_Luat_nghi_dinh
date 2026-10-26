@@ -11,6 +11,8 @@ from .rag import RAGRetrieval
 from .reranking import ProxyAITeamVNReranker
 from .vector_db import VectorDB
 
+
+
 CHUNK_SIZE: int = 1000
 CHUNK_OVERLAP: int = 200
 
@@ -70,10 +72,13 @@ def query(question: str) -> list[tuple[dict, float]]:
     return reranked_results
 
 
+
+
 def chatbot() -> None:
     agent = Agent()
     while True:
         prompt : str = input(">>>")
         if prompt == "\\exit":
             break
-        agent.invoke(prompt)
+        
+        
