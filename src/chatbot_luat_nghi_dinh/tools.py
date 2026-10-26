@@ -178,9 +178,10 @@ def clarify(state: RagState) -> dict:
     return {}
 
 
-#@ Trả lời chitchat/ngoài phạm vi bằng 1 lần gọi LLM, không tool
-def chitchat(state: RagState) -> dict:
-    return {}
+#@ Gọi LLM trả lời trực tiếp câu hỏi, không truy vấn dữ liệu.
+def chitchat(state: RagState) -> dict[str, str]:
+    agent: Agent = Agent()
+    return {"answer": agent.invoke(state["question"])}
 
 
 #@ Rẽ sang clarify nếu có clarify_reason, ngược lại đi tiếp
