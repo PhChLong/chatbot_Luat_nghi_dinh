@@ -5,7 +5,6 @@ import torch
 
 from .chunking import sync_chroma
 from .database import sync_database
-from .deepagent import Agent
 from .embedding import ProxyAITeamVNEmbeddingManager
 from .rag import RAGRetrieval
 from .reranking import ProxyAITeamVNReranker
@@ -74,11 +73,16 @@ def query(question: str) -> list[tuple[dict, float]]:
 
 
 
+#@ Tạo graph một lần, xử lý từng câu nhập và in câu trả lời; thoát bằng \exit.
 def chatbot() -> None:
-    agent = Agent()
+    from langgraph.graph.state import CompiledStateGraph
+
+    from .tools import build_graph
+
+    graph: CompiledStateGraph = build_graph()
     while True:
-        prompt : str = input(">>>")
+        prompt: str = input(">>>")
         if prompt == "\\exit":
             break
-        
-        
+        result: dict[str, object] = graph.invoke({"question": prompt})
+        print(result["answer"])

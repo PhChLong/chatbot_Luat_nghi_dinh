@@ -1,12 +1,23 @@
-from datetime import date
-from typing import Literal, NotRequired, TypedDict
-
-from langgraph.graph import END, START, StateGraph
-from .deepagent import Agent
-from .database import query_metadata
-from .prompts import CLASSIFY_PROMPT, EXTRACT_PROMPT
-import re
 import json
+import re
+from datetime import date
+from typing import Any, Literal, NotRequired, TypedDict
+
+from chromadb.api.types import Where
+from langgraph.graph import END, START, StateGraph
+
+from .database import query_content, query_metadata
+from .deepagent import Agent
+from .prompts import (
+    CLASSIFY_PROMPT,
+    DOC_ANSWER_PROMPT,
+    DOC_GRADE_PROMPT,
+    DOC_REWRITE_PROMPT,
+    EXTRACT_PROMPT,
+    SIT_ANSWER_PROMPT,
+    SIT_GRADE_PROMPT,
+)
+from . import reranker, retriever  #? Dùng lại các instance đã có trong package.
 
 QuestionType = Literal["metadata", "document_content", "situation", "chitchat"]  #?: 4 route; quan hệ giữa các văn bản gộp vào metadata nhờ trích lúc ingest
 MAX_RETRIES: int = 2  #?: giới hạn vòng retrieve lại để model local không lặp vô hạn
@@ -23,7 +34,7 @@ class RagState(TypedDict):
     standalone_question: str
     question_type: QuestionType
     entities: Entities
-    retrieved_docs: list[dict[str, str]]
+    retrieved_docs: list[dict[str, Any]]  #? Chunk gồm text, metadata, ID và điểm số từ retrieval.
     retry_count: int
     clarify_reason: str | None  #?: khác None thì graph rẽ sang node clarify
     answer: str
@@ -31,6 +42,10 @@ class RagState(TypedDict):
     article_label: NotRequired[str | None]
     clause_label: NotRequired[str | None]
     label: NotRequired[str | None]
+    search_query: NotRequired[str]
+    context_sufficient: NotRequired[bool]
+    insufficient_reason: NotRequired[str | None]
+    document_metadata: NotRequired[dict[str, str | int | None]]
 
 class ExtractedInfo(TypedDict):
     name: str | None  #?: số hiệu dạng gạch ngang, vd "13-2026-TT-BNG"
@@ -50,9 +65,6 @@ def choose_route(state: RagState) -> str:
     return qtype if qtype in ("metadata", "document_content", "situation") else "chitchat"
 
 # ───────── metadata ─────────
-EMPTY_INFO: ExtractedInfo = {"name": None, "article_label": None, "clause_label": None, "label": None}
-
-
 #@ Chuẩn hóa 1 giá trị: chuỗi rỗng/"null" -> None, bỏ khoảng trắng
 def clean_value(value: object) -> str | None:
     if value is None:
@@ -61,16 +73,21 @@ def clean_value(value: object) -> str | None:
     return None if text.lower() in ("", "null", "none") else text
 
 
-#@ Parse output của model thành ExtractedInfo; JSON hỏng thì trả EMPTY_INFO
-def parse_extracted(raw: str) -> ExtractedInfo:
+#@ Đọc JSON object từ output LLM; output hỏng hoặc sai kiểu trả dict rỗng.
+def parse_model_object(raw: str) -> dict[str, Any]:
     match: re.Match[str] | None = re.search(r"\{.*\}", raw, re.DOTALL)  #?: model local hay chèn chữ trước/sau JSON
     if match is None:
-        return dict(EMPTY_INFO)  # type: ignore[return-value]
+        return {}
     try:
-        data: dict = json.loads(match.group(0))
+        data: Any = json.loads(match.group(0))  #? JSON của model có thể sai kiểu, phải kiểm tra trước khi dùng.
     except json.JSONDecodeError:
-        return dict(EMPTY_INFO)  # type: ignore[return-value]
+        return {}
+    return data if isinstance(data, dict) else {}
 
+
+#@ Parse output của model thành bốn trường extract, không suy đoán trường bị thiếu.
+def parse_extracted(raw: str) -> ExtractedInfo:
+    data: dict[str, Any] = parse_model_object(raw)
     name: str | None = clean_value(data.get("name"))
     if name is not None:
         name = name.replace("/", "-").replace(" ", "")  #?: phòng khi model quên đổi dấu "/"
@@ -120,62 +137,139 @@ def meta_answer(state: RagState) -> dict[str, str]:
     return {"answer": answer}
 
 
-# ───────── document_content ─────────
-#@ Resolve tên/số hiệu văn bản; không khớp thì set clarify_reason
-def doc_resolve(state: RagState) -> dict:
-    return {}
+# ───────── dùng chung cho document_content và situation ─────────
+#@ Extract một lần, khởi tạo lượt tìm kiếm và kiểm tra địa chỉ văn bản có rõ không.
+def doc_resolve(state: RagState) -> dict[str, Any]:
+    info: ExtractedInfo = extract_info(state)
+    update: dict[str, Any] = {
+        **info, "search_query": state["question"], "retry_count": 0,
+        "retrieved_docs": [], "context_sufficient": False,
+        "insufficient_reason": None, "clarify_reason": None, "document_metadata": {},
+    }
+    if (info["article_label"] or info["clause_label"] or info["label"]) and not info["name"]:
+        update["clarify_reason"] = "Bạn muốn tra Điều/Khoản/Điểm đó trong văn bản có số hiệu nào?"
+    elif (info["clause_label"] or info["label"]) and not info["article_label"]:
+        update["clarify_reason"] = "Khoản/Điểm bạn hỏi thuộc Điều nào của văn bản?"
+    elif info["name"]:
+        try:
+            metadata: dict[str, str | int | None] | None = query_metadata(info["name"])
+        except ValueError as exc:
+            update["clarify_reason"] = str(exc)
+        else:
+            if metadata is None:
+                update["clarify_reason"] = f"Không tìm thấy văn bản {info['name']}. Bạn kiểm tra lại số hiệu nhé."
+            else:
+                update["document_metadata"] = metadata
+    return update
 
 
-#@ Có "Điều N" thì fetch thẳng, không thì hybrid search filter theo doc_id rồi rerank
-def doc_retrieve(state: RagState) -> dict:
-    return {}
+#@ Lấy trọn Khoản/Điểm bằng SQLite; còn lại tìm tối đa 20 chunk và rerank lấy 5 nếu cần.
+def doc_retrieve(state: RagState) -> dict[str, Any]:
+    name: str | None = state.get("name")
+    article: str | None = state.get("article_label")
+    clause: str | None = state.get("clause_label")
+    point: str | None = state.get("label")
+    if name and article and (clause or point):
+        try:
+            rows: list[dict[str, Any]] = query_content(
+                name, "điểm" if point else "khoản", point or clause or "",
+                article_label=article, clause_label=clause,
+            )
+        except ValueError as exc:
+            return {"retrieved_docs": [], "clarify_reason": str(exc)}
+        if not rows:
+            return {"retrieved_docs": []}
+        #? Gộp cây con thành một context, không rerank làm mất các Điểm bên trong Khoản.
+        content: str = "\n".join(
+            f"{row['unit_type']} {row['label']}: {row.get('title') or ''}\n{row.get('body') or ''}"
+            for row in rows
+        )
+        return {"retrieved_docs": [{
+            "content": content,
+            "metadata": {**state.get("document_metadata", {}), "article": article,
+                         "clause_label": clause, "label": point},
+        }]}
+
+    
+
+    where: Where | None = None
+    if name and article:
+        where = {"$and": [{"name": name}, {"article": article}]}
+    elif name:
+        where = {"name": name}
+    query: str = state.get("search_query") or state["question"]
+    docs: list[dict[str, Any]] = retriever.query(question=query, top_k=20, where=where)
+    if len(docs) > 5:
+        docs = [doc for doc, score in reranker.rerank(query=query, docs=docs, top_k=5)]
+    return {"retrieved_docs": docs}
 
 
-#@ Đánh giá context đã đủ trả lời chưa
-def doc_grade(state: RagState) -> dict:
-    return {}
+#@ Grade độ đủ của context cho câu hỏi gốc; JSON sai không được xem là đủ.
+def doc_grade(state: RagState) -> dict[str, Any]:
+    if not state.get("retrieved_docs"):
+        return {"context_sufficient": False, "insufficient_reason": "Không tìm thấy context phù hợp."}
+    prompt: str = SIT_GRADE_PROMPT if state.get("question_type") == "situation" else DOC_GRADE_PROMPT
+    agent: Agent = Agent(prompt, temperature=0)
+    raw: str = agent.invoke(json.dumps({
+        "question": state["question"], "context": state["retrieved_docs"],
+        "document_metadata": state.get("document_metadata", {}),
+        "as_of_date": state.get("entities", {}).get("as_of_date") or date.today().isoformat(),
+    }, ensure_ascii=False))
+    grade: dict[str, Any] = parse_model_object(raw)
+    sufficient: bool = grade.get("context_sufficient") is True
+    reason: str | None = clean_value(grade.get("insufficient_reason"))
+    clarify_reason: str | None = clean_value(grade.get("clarify_reason"))
+    return {
+        "context_sufficient": sufficient and not clarify_reason,
+        "insufficient_reason": None if sufficient else reason or "Chưa xác minh context đủ trả lời mọi ý của câu hỏi gốc.",
+        "clarify_reason": clarify_reason,
+    }
 
 
-#@ Viết lại query khi context chưa đủ, tăng retry_count
-def doc_rewrite_query(state: RagState) -> dict:
-    return {}
+#@ Viết lại query từ câu hỏi gốc và lý do thiếu; giữ các trường extract để không đổi filter.
+def doc_rewrite_query(state: RagState) -> dict[str, Any]:
+    #? shortcut: query mới không đổi cây con SQLite; mở rộng retrieval khi cần nguồn ngoài Khoản/Điểm đã chọn.
+    agent: Agent = Agent(DOC_REWRITE_PROMPT, temperature=0)
+    query: str = agent.invoke(json.dumps({
+        "question": state["question"],
+        "search_query": state.get("search_query") or state["question"],
+        "insufficient_reason": state.get("insufficient_reason"),
+        "name": state.get("name"), "article_label": state.get("article_label"),
+        "clause_label": state.get("clause_label"), "label": state.get("label"),
+    }, ensure_ascii=False)).strip()
+    return {
+        "search_query": query or state["question"],
+        "retry_count": state.get("retry_count", 0) + 1,
+    }
 
 
-#@ Sinh câu trả lời kèm trích dẫn Điều/khoản và kiểm tra trích dẫn có trong context
-def doc_generate(state: RagState) -> dict:
-    return {}
-
-
-# ───────── situation ─────────
-#@ Rút sự kiện, vấn đề pháp lý và 2-3 query từ khóa từ tình huống
-def sit_analyze(state: RagState) -> dict:
-    return {}
-
-
-#@ Search toàn corpus, mở rộng chunk lên khoản/điểm
-def sit_retrieve(state: RagState) -> dict:
-    return {}
-
-
-#@ Loại văn bản chưa có hoặc hết hiệu lực tại as_of_date
-def sit_filter_validity(state: RagState) -> dict:
-    return {}
-
-
-#@ Thiếu dữ kiện thì set clarify_reason thay vì đoán
-def sit_check_facts(state: RagState) -> dict:
-    return {}
-
-
-#@ Chọn điều khoản liên quan rồi mới viết kết luận (2 lần gọi LLM)
-def sit_generate(state: RagState) -> dict:
-    return {}
+#@ Trả lời theo context, báo thiếu sau khi hết retry và chặn số nguồn không tồn tại.
+def doc_generate(state: RagState) -> dict[str, str]:
+    docs: list[dict[str, Any]] = state.get("retrieved_docs", [])
+    if not docs:
+        return {"answer": "Chưa tìm thấy nội dung đủ căn cứ để trả lời câu hỏi này trong dữ liệu hiện có."}
+    prompt: str = SIT_ANSWER_PROMPT if state.get("question_type") == "situation" else DOC_ANSWER_PROMPT
+    agent: Agent = Agent(prompt, temperature=0)
+    context: list[dict[str, Any]] = [dict(doc, source_id=index) for index, doc in enumerate(docs, 1)]
+    answer: str = agent.invoke(json.dumps({
+        "question": state["question"], "context": context,
+        "context_sufficient": state.get("context_sufficient", False),
+        "insufficient_reason": state.get("insufficient_reason"),
+        "document_metadata": state.get("document_metadata", {}),
+        "as_of_date": state.get("entities", {}).get("as_of_date") or date.today().isoformat(),
+    }, ensure_ascii=False))
+    citations: list[str] = re.findall(r"\[(\d+)\]", answer)
+    if any(not 1 <= int(reference) <= len(docs) for reference in citations):
+        return {"answer": "Chưa thể trả lời vì model trích dẫn nguồn không có trong context."}
+    if not state.get("context_sufficient", False):
+        answer = f"Context hiện chưa đủ: {state.get('insufficient_reason') or 'Thiếu thông tin để kết luận.'}\n\n{answer}"
+    return {"answer": answer}
 
 
 # ───────── dùng chung ─────────
-#@ Hỏi lại người dùng đúng 1 câu dựa trên clarify_reason
-def clarify(state: RagState) -> dict:
-    return {}
+#@ Trả câu làm rõ đã xác định, không gọi model để tự bổ sung dữ kiện.
+def clarify(state: RagState) -> dict[str, str]:
+    return {"answer": state.get("clarify_reason") or "Bạn vui lòng làm rõ câu hỏi."}
 
 
 #@ Gọi LLM trả lời trực tiếp câu hỏi, không truy vấn dữ liệu.
@@ -186,60 +280,52 @@ def chitchat(state: RagState) -> dict[str, str]:
 
 #@ Rẽ sang clarify nếu có clarify_reason, ngược lại đi tiếp
 def need_clarify(state: RagState) -> str:
-    return "clarify" if state["clarify_reason"] else "continue"
+    return "clarify" if state.get("clarify_reason") else "continue"
 
 
 #@ Sau doc_grade: đủ context thì generate, chưa đủ và còn lượt thì viết lại query
 def after_grade(state: RagState) -> str:
-    enough: bool = len(state["retrieved_docs"]) > 0  #?: placeholder; thay bằng kết quả grade thật
-    if enough or state["retry_count"] >= MAX_RETRIES:
+    if state.get("clarify_reason"):
+        return "clarify"
+    if state.get("context_sufficient", False) or state.get("retry_count", 0) >= MAX_RETRIES:
         return "generate"
     return "retry"
 
 
-#@ Lắp graph: preprocess → classify → 4 route, mỗi route kết thúc ở END
+#@ Lắp graph; document_content và situation dùng chung node, chọn prompt theo question_type.
 def build_graph():
-    g: StateGraph = StateGraph(RagState)
+    builder: StateGraph = StateGraph(RagState)
 
     node_fns: dict = {
         "classify": classify,
         "extract_info": extract_info, "meta_answer": meta_answer,
         "doc_resolve": doc_resolve, "doc_retrieve": doc_retrieve, "doc_grade": doc_grade,
         "doc_rewrite_query": doc_rewrite_query, "doc_generate": doc_generate,
-        "sit_analyze": sit_analyze, "sit_retrieve": sit_retrieve, "sit_filter_validity": sit_filter_validity,
-        "sit_check_facts": sit_check_facts, "sit_generate": sit_generate,
         "clarify": clarify, "chitchat": chitchat,
     }
     name: str
     for name, fn in node_fns.items():
-        g.add_node(name, fn)
+        builder.add_node(name, fn)
 
-    g.add_edge(START, "classify")
-    g.add_conditional_edges("classify", choose_route, {
+    builder.add_edge(START, "classify")
+    builder.add_conditional_edges("classify", choose_route, {
         "metadata": "extract_info",
         "document_content": "doc_resolve",
-        "situation": "sit_analyze",
+        "situation": "doc_resolve",
         "chitchat": "chitchat",
     })
 
     # metadata
-    g.add_edge("extract_info", "meta_answer")
-    g.add_edge("meta_answer", END)
+    builder.add_edge("extract_info", "meta_answer")
+    builder.add_edge("meta_answer", END)
 
-    # document_content
-    g.add_conditional_edges("doc_resolve", need_clarify, {"clarify": "clarify", "continue": "doc_retrieve"})
-    g.add_edge("doc_retrieve", "doc_grade")
-    g.add_conditional_edges("doc_grade", after_grade, {"generate": "doc_generate", "retry": "doc_rewrite_query"})
-    g.add_edge("doc_rewrite_query", "doc_retrieve")
-    g.add_edge("doc_generate", END)
+    # document_content / situation
+    builder.add_conditional_edges("doc_resolve", need_clarify, {"clarify": "clarify", "continue": "doc_retrieve"})
+    builder.add_conditional_edges("doc_retrieve", need_clarify, {"clarify": "clarify", "continue": "doc_grade"})
+    builder.add_conditional_edges("doc_grade", after_grade, {"generate": "doc_generate", "retry": "doc_rewrite_query", "clarify": "clarify"})
+    builder.add_edge("doc_rewrite_query", "doc_retrieve")
+    builder.add_edge("doc_generate", END)
 
-    # situation
-    g.add_edge("sit_analyze", "sit_retrieve")
-    g.add_edge("sit_retrieve", "sit_filter_validity")
-    g.add_edge("sit_filter_validity", "sit_check_facts")
-    g.add_conditional_edges("sit_check_facts", need_clarify, {"clarify": "clarify", "continue": "sit_generate"})
-    g.add_edge("sit_generate", END)
-
-    g.add_edge("clarify", END)
-    g.add_edge("chitchat", END)
-    return g.compile()
+    builder.add_edge("clarify", END)
+    builder.add_edge("chitchat", END)
+    return builder.compile()
