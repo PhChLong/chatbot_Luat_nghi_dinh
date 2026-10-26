@@ -123,6 +123,30 @@ def create_metadata_table(database_path: str | Path = "legal_units.db") -> None:
         connection.close()
 
 
+#@ Lấy metadata theo tên nguồn; trả None nếu không có, báo lỗi nếu tên không duy nhất.
+def query_metadata(
+    document_name: str,
+    database_path: str | Path = "legal_units.db",
+) -> dict[str, str | int | None] | None:
+    #? Chỉ mở database đã tồn tại để truy vấn không tạo nhầm file rỗng.
+    database_uri: str = Path(database_path).resolve().as_uri() + "?mode=ro"
+    connection: sqlite3.Connection = sqlite3.connect(database_uri, uri=True)
+    connection.row_factory = sqlite3.Row
+    try:
+        rows: list[sqlite3.Row] = connection.execute(
+            "SELECT * FROM metadata WHERE name = ? LIMIT 2", (document_name,)
+        ).fetchall()
+        if not rows:
+            return None
+        if len(rows) > 1:
+            raise ValueError(
+                f"Tên {document_name} khớp nhiều bản ghi metadata; chưa thể chọn văn bản."
+            )
+        return dict(rows[0])
+    finally:
+        connection.close()
+
+
 def query_content(
     document_name: str,
     unit_type: str,
