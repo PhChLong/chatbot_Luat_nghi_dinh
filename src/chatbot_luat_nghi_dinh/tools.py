@@ -17,7 +17,7 @@ from .prompts import (
     SIT_ANSWER_PROMPT,
     SIT_GRADE_PROMPT,
 )
-from . import reranker, retriever  #? Dùng lại các instance đã có trong package.
+from . import reranker, retriever
 
 QuestionType = Literal["metadata", "document_content", "situation", "chitchat"]  #?: 4 route; quan hệ giữa các văn bản gộp vào metadata nhờ trích lúc ingest
 MAX_RETRIES: int = 2  #?: giới hạn vòng retrieve lại để model local không lặp vô hạn
@@ -55,6 +55,7 @@ class ExtractedInfo(TypedDict):
 
 #@ Phân loại câu hỏi thành 1 trong 4 route
 def classify(state: RagState) -> dict:
+    print("[NODE] classify", flush=True)
     classify_agent = Agent(CLASSIFY_PROMPT, temperature=0)
     return {"question_type": classify_agent.invoke(state['question'])}
 
@@ -62,6 +63,7 @@ def classify(state: RagState) -> dict:
 #@ Chọn route; giá trị lạ rơi về chitchat
 def choose_route(state: RagState) -> str:
     qtype: str = state["question_type"]
+    print(f"[ROUTE] classify: {qtype!r} -> {qtype if qtype in ('metadata', 'document_content', 'situation') else 'chitchat'}", flush=True)
     return qtype if qtype in ("metadata", "document_content", "situation") else "chitchat"
 
 # ───────── metadata ─────────
@@ -101,12 +103,15 @@ def parse_extracted(raw: str) -> ExtractedInfo:
 
 #@ Node trích xuất: gọi LLM với câu hỏi rồi parse ra 4 trường
 def extract_info(state: RagState) -> ExtractedInfo:
+    print("[NODE] extract_info", flush=True)
     extractor_agent = Agent(EXTRACT_PROMPT, temperature=0)
     raw: str = extractor_agent.invoke(state['question'])
+    print(f"[EXTRACT] {parse_extracted(raw)}", flush=True)
     return parse_extracted(raw)
 
 #@ Tra metadata bằng tên đã extract, tạo context rồi gọi LLM trả lời câu hỏi.
 def meta_answer(state: RagState) -> dict[str, str]:
+    print("[NODE] meta_answer", flush=True)
     name: str | None = state.get("name")
     if not name:
         return {"answer": "Bạn vui lòng cung cấp số hiệu văn bản cần tra cứu."}
@@ -140,6 +145,7 @@ def meta_answer(state: RagState) -> dict[str, str]:
 # ───────── dùng chung cho document_content và situation ─────────
 #@ Extract một lần, khởi tạo lượt tìm kiếm và kiểm tra địa chỉ văn bản có rõ không.
 def doc_resolve(state: RagState) -> dict[str, Any]:
+    print("[NODE] doc_resolve", flush=True)
     info: ExtractedInfo = extract_info(state)
     update: dict[str, Any] = {
         **info, "search_query": state["question"], "retry_count": 0,
@@ -160,16 +166,19 @@ def doc_resolve(state: RagState) -> dict[str, Any]:
                 update["clarify_reason"] = f"Không tìm thấy văn bản {info['name']}. Bạn kiểm tra lại số hiệu nhé."
             else:
                 update["document_metadata"] = metadata
+    print(f"[RESOLVE] name={info['name']}, article={info['article_label']}, clause={info['clause_label']}, point={info['label']}; clarify={update['clarify_reason']}", flush=True)
     return update
 
 
 #@ Lấy trọn Khoản/Điểm bằng SQLite; còn lại tìm tối đa 20 chunk và rerank lấy 5 nếu cần.
 def doc_retrieve(state: RagState) -> dict[str, Any]:
+    print("[NODE] doc_retrieve", flush=True)
     name: str | None = state.get("name")
     article: str | None = state.get("article_label")
     clause: str | None = state.get("clause_label")
     point: str | None = state.get("label")
     if name and article and (clause or point):
+        print("[RETRIEVE] SQLite: lấy cây Khoản/Điểm, bỏ qua embedding và rerank", flush=True)
         try:
             rows: list[dict[str, Any]] = query_content(
                 name, "điểm" if point else "khoản", point or clause or "",
@@ -177,6 +186,7 @@ def doc_retrieve(state: RagState) -> dict[str, Any]:
             )
         except ValueError as exc:
             return {"retrieved_docs": [], "clarify_reason": str(exc)}
+        print(f"[RETRIEVE] SQLite: {len(rows)} dòng", flush=True)
         if not rows:
             return {"retrieved_docs": []}
         #? Gộp cây con thành một context, không rerank làm mất các Điểm bên trong Khoản.
@@ -198,15 +208,20 @@ def doc_retrieve(state: RagState) -> dict[str, Any]:
     elif name:
         where = {"name": name}
     query: str = state.get("search_query") or state["question"]
+    print(f"[RETRIEVE] Chroma + embedding: query={query!r}, filter={where}, top_k=20", flush=True)
     docs: list[dict[str, Any]] = retriever.query(question=query, top_k=20, where=where)
+    print(f"[RETRIEVE] Chroma: {len(docs)} chunk; rerank={len(docs) > 5}", flush=True)
     if len(docs) > 5:
         docs = [doc for doc, score in reranker.rerank(query=query, docs=docs, top_k=5)]
+    print(f"[RETRIEVE] Trả về {len(docs)} chunk", flush=True)
     return {"retrieved_docs": docs}
 
 
 #@ Grade độ đủ của context cho câu hỏi gốc; JSON sai không được xem là đủ.
 def doc_grade(state: RagState) -> dict[str, Any]:
+    print("[NODE] doc_grade", flush=True)
     if not state.get("retrieved_docs"):
+        print("[GRADE] Không có context -> chưa đủ", flush=True)
         return {"context_sufficient": False, "insufficient_reason": "Không tìm thấy context phù hợp."}
     prompt: str = SIT_GRADE_PROMPT if state.get("question_type") == "situation" else DOC_GRADE_PROMPT
     agent: Agent = Agent(prompt, temperature=0)
@@ -219,6 +234,7 @@ def doc_grade(state: RagState) -> dict[str, Any]:
     sufficient: bool = grade.get("context_sufficient") is True
     reason: str | None = clean_value(grade.get("insufficient_reason"))
     clarify_reason: str | None = clean_value(grade.get("clarify_reason"))
+    print(f"[GRADE] sufficient={sufficient and not clarify_reason}, reason={reason}, clarify={clarify_reason}", flush=True)
     return {
         "context_sufficient": sufficient and not clarify_reason,
         "insufficient_reason": None if sufficient else reason or "Chưa xác minh context đủ trả lời mọi ý của câu hỏi gốc.",
@@ -228,6 +244,7 @@ def doc_grade(state: RagState) -> dict[str, Any]:
 
 #@ Viết lại query từ câu hỏi gốc và lý do thiếu; giữ các trường extract để không đổi filter.
 def doc_rewrite_query(state: RagState) -> dict[str, Any]:
+    print("[NODE] doc_rewrite_query", flush=True)
     #? shortcut: query mới không đổi cây con SQLite; mở rộng retrieval khi cần nguồn ngoài Khoản/Điểm đã chọn.
     agent: Agent = Agent(DOC_REWRITE_PROMPT, temperature=0)
     query: str = agent.invoke(json.dumps({
@@ -237,6 +254,7 @@ def doc_rewrite_query(state: RagState) -> dict[str, Any]:
         "name": state.get("name"), "article_label": state.get("article_label"),
         "clause_label": state.get("clause_label"), "label": state.get("label"),
     }, ensure_ascii=False)).strip()
+    print(f"[RETRY] Lượt {state.get('retry_count', 0) + 1}/{MAX_RETRIES}: query={query or state['question']!r}", flush=True)
     return {
         "search_query": query or state["question"],
         "retry_count": state.get("retry_count", 0) + 1,
@@ -245,7 +263,9 @@ def doc_rewrite_query(state: RagState) -> dict[str, Any]:
 
 #@ Trả lời theo context, báo thiếu sau khi hết retry và chặn số nguồn không tồn tại.
 def doc_generate(state: RagState) -> dict[str, str]:
+    print("[NODE] doc_generate", flush=True)
     docs: list[dict[str, Any]] = state.get("retrieved_docs", [])
+    print(f"[GENERATE] type={state.get('question_type')}, chunks={len(docs)}, sufficient={state.get('context_sufficient', False)}", flush=True)
     if not docs:
         return {"answer": "Chưa tìm thấy nội dung đủ căn cứ để trả lời câu hỏi này trong dữ liệu hiện có."}
     prompt: str = SIT_ANSWER_PROMPT if state.get("question_type") == "situation" else DOC_ANSWER_PROMPT
@@ -269,26 +289,32 @@ def doc_generate(state: RagState) -> dict[str, str]:
 # ───────── dùng chung ─────────
 #@ Trả câu làm rõ đã xác định, không gọi model để tự bổ sung dữ kiện.
 def clarify(state: RagState) -> dict[str, str]:
+    print("[NODE] clarify", flush=True)
     return {"answer": state.get("clarify_reason") or "Bạn vui lòng làm rõ câu hỏi."}
 
 
 #@ Gọi LLM trả lời trực tiếp câu hỏi, không truy vấn dữ liệu.
 def chitchat(state: RagState) -> dict[str, str]:
+    print("[NODE] chitchat", flush=True)
     agent: Agent = Agent()
     return {"answer": agent.invoke(state["question"])}
 
 
 #@ Rẽ sang clarify nếu có clarify_reason, ngược lại đi tiếp
 def need_clarify(state: RagState) -> str:
+    print(f"[ROUTE] need_clarify -> {'clarify' if state.get('clarify_reason') else 'continue'}; reason={state.get('clarify_reason')}", flush=True)
     return "clarify" if state.get("clarify_reason") else "continue"
 
 
 #@ Sau doc_grade: đủ context thì generate, chưa đủ và còn lượt thì viết lại query
 def after_grade(state: RagState) -> str:
     if state.get("clarify_reason"):
+        print("[ROUTE] doc_grade -> clarify", flush=True)
         return "clarify"
     if state.get("context_sufficient", False) or state.get("retry_count", 0) >= MAX_RETRIES:
+        print(f"[ROUTE] doc_grade -> doc_generate; sufficient={state.get('context_sufficient', False)}, retry={state.get('retry_count', 0)}/{MAX_RETRIES}", flush=True)
         return "generate"
+    print("[ROUTE] doc_grade -> doc_rewrite_query -> doc_retrieve", flush=True)
     return "retry"
 
 
