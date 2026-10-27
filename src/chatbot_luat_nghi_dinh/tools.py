@@ -7,7 +7,7 @@ from chromadb.api.types import Where
 from langgraph.graph import END, START, StateGraph
 
 from .database import query_content, query_metadata
-from .deepagent import Agent
+from .agent import Agent
 from .prompts import (
     CLASSIFY_PROMPT,
     DOC_ANSWER_PROMPT,
